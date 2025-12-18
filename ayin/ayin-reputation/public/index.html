@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayin - Agent Reputation Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            border-bottom: 1px solid #334155;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #3b82f6, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 10px 15px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .metric-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .metric-label {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .trade-history {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #0f172a;
+            padding: 15px;
+            text-align: left;
+            color: #94a3b8;
+            font-weight: 600;
+            border-bottom: 1px solid #334155;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #334155;
+            color: #cbd5e1;
+        }
+
+        tr:hover {
+            background: #334155;
+        }
+
+        .win {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .loss {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .break {
+            color: #94a3b8;
+        }
+
+        .monthly-chart {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 40px;
+        }
+
+        .chart-placeholder {
+            min-height: 100px;
+            background: #0f172a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            padding: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .month-chip {
+            background: #334155;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Ayin Agent Reputation Dashboard</h1>
+            <div class="search-box">
+                <input type="text" id="agentIdInput" placeholder="Enter agent ID (e.g. 1)" />
+                <button onclick="searchAgent()">Search</button>
+            </div>
+        </header>
+
+        <div id="content">
+            <p style="color: #64748b; text-align: center; margin-top: 50px; font-size: 18px;">
+                Enter an agent ID to view reputation metrics
+            </p>
+        </div>
+    </div>
+
+    <script>
+        async function searchAgent() {
+            const agentId = document.getElementById('agentIdInput').value;
+            if (!agentId) return;
+
+            const contentDiv = document.getElementById('content');
+            contentDiv.innerHTML = '<p style="text-align: center; color: #94a3b8;">Loading...</p>';
+
+            try {
+                const response = await fetch(`/agents/${agentId}/profile`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const profile = await response.json();
+
+                displayProfile(profile);
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+                contentDiv.innerHTML = `<p style="text-align: center; color: #ef4444;">Error: ${error.message}</p>`;
+            }
+        }
+
+        function formatNumber(num) {
+            return Number(num).toLocaleString(undefined, { maximumFractionDigits: 2 });
+        }
+
+        function formatTime(timestamp) {
+            return new Date(timestamp * 1000).toLocaleString();
+        }
+
+        function displayProfile(profile) {
+            const { agentId, metrics, recentTrades, monthlyPerformance } = profile;
+            const contentDiv = document.getElementById('content');
+
+            // Determine PnL color
+            const pnlColor = BigInt(metrics.totalPnL) > 0n ? '#10b981' : (BigInt(metrics.totalPnL) < 0n ? '#ef4444' : '#94a3b8');
+            const pnlValue = Number(metrics.totalPnL) / 1e18; // Assume 18 decimals
+
+            let html = `
+                <h2 style="margin-bottom: 20px;">Agent #${agentId} Overview</h2>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Reputation Score</div>
+                        <div class="metric-value" style="color: #fbbf24;">${metrics.reputationScore}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Win Rate</div>
+                        <div class="metric-value">${metrics.winRate.toFixed(1)}%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Trades</div>
+                        <div class="metric-value">${metrics.totalTrades}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total PnL</div>
+                        <div class="metric-value" style="color: ${pnlColor}">
+                            ${pnlValue.toFixed(4)} ETH
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Avg Return</div>
+                        <div class="metric-value">${metrics.avgReturn.toFixed(2)}%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Sharpe Ratio</div>
+                        <div class="metric-value">${metrics.sharpeRatio.toFixed(2)}</div>
+                    </div>
+                </div>
+
+                <div class="monthly-chart">
+                    <h3 style="margin-bottom: 15px;">Monthly Performance</h3>
+                    <div class="chart-placeholder">
+                        ${monthlyPerformance.length > 0 
+                            ? monthlyPerformance.map(m => 
+                                `<div class="month-chip">
+                                    <strong>${m.month}</strong>: ${m.trades} trades, ${m.winRate.toFixed(1)}% WR
+                                </div>`
+                              ).join('')
+                            : 'No monthly data available'}
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom: 15px;">Recent Trades</h3>
+                <div class="trade-history">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Details</th>
+                                <th>Direction</th>
+                                <th>Entry Size</th>
+                                <th>Result</th>
+                                <th>ROI</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${recentTrades.map(trade => {
+                                const resultClass = trade.result === 'WIN' ? 'win' : (trade.result === 'LOSS' ? 'loss' : 'break');
+                                const roi = trade.roiPercent ? trade.roiPercent.toFixed(2) + '%' : '-';
+                                const entrySize = (Number(trade.entrySize) / 1e18).toFixed(4);
+                                return `
+                                    <tr>
+                                        <td>
+                                            Market #${trade.marketId}
+                                        </td>
+                                        <td>
+                                            <span style="color: ${trade.direction === 'YES' ? '#10b981' : '#ef4444'}; font-weight: bold;">
+                                                ${trade.direction}
+                                            </span>
+                                        </td>
+                                        <td>${entrySize}</td>
+                                        <td class="${resultClass}">${trade.result || 'OPEN'}</td>
+                                        <td>${roi}</td>
+                                        <td style="font-size: 14px; color: #94a3b8;">${formatTime(trade.entryTime)}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                    ${recentTrades.length === 0 ? '<p style="padding: 20px; text-align: center; color: #94a3b8;">No trades found</p>' : ''}
+                </div>
+            `;
+
+            contentDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
