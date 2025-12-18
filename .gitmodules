@@ -4,3 +4,12 @@
 [submodule "lib/account-abstraction"]
 	path = lib/account-abstraction
 	url = https://github.com/eth-infinitism/account-abstraction
+[submodule "ayin/contracts/lib/openzeppelin-contracts"]
+	path = ayin/contracts/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "ayin/contracts/lib/account-abstraction"]
+	path = ayin/contracts/lib/account-abstraction
+	url = https://github.com/eth-infinitism/account-abstraction
+[submodule "ayin/contracts/lib/contracts"]
+	path = ayin/contracts/lib/contracts
+	url = https://github.com/thirdweb-dev/contracts

@@ -1,0 +1,1 @@
+{"version":3,"file":"positionSizer.d.ts","sourceRoot":"","sources":["../src/positionSizer.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,MAAM,EAAE,WAAW,EAAE,MAAM,SAAS,CAAC;AAEvD,qBAAa,aAAa;IACtB,OAAO,CAAC,MAAM,CAAS;gBAEX,MAAM,EAAE,MAAM;IAI1B;;OAEG;IACH,YAAY,CAAC,MAAM,EAAE,WAAW,EAAE,OAAO,EAAE,OAAO,GAAG,MAAM;CAoB9D"}
