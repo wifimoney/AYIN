@@ -15,7 +15,7 @@ class Agent {
         this.isRunning = false;
         this.config = config;
         this.logger = logger;
-        this.marketFetcher = new marketFetcher_1.MarketFetcher(config.predictionMarketAddress, config.rpcUrl, logger);
+        this.marketFetcher = new marketFetcher_1.MarketFetcher(config.predictionMarketAddress, config.rpcUrl, config.x402BaseUrl, config.x402Config, logger);
         this.mandateFetcher = new mandateFetcher_1.MandateFetcher(config.delegationPolicyAddress, config.rpcUrl, logger);
         this.strategy = new strategy_1.SimpleStrategy(this.marketFetcher, logger);
         this.positionSizer = new positionSizer_1.PositionSizer(logger);
@@ -66,7 +66,8 @@ class Agent {
                 return null;
             }
             // Fetch all open markets (simplified: just marketId 1 for MVP)
-            const market = await this.marketFetcher.getMarket(1);
+            // Use X402 client implicitly via updated MarketFetcher
+            const market = await this.marketFetcher.getMarket(1, true); // true = include premium signals if possible
             if (!market) {
                 this.logger.error('Could not fetch market');
                 return null;
@@ -111,7 +112,15 @@ class Agent {
                     if (this.executor) {
                         const result = await this.executor.executeTrade(signal.marketId, this.config.agentId, position, signal.direction);
                         if (result.success) {
-                            this.logger.info('Trade executed', result);
+                            // Log execution + data costs
+                            const summary = this.marketFetcher.getUsageSummary();
+                            this.logger.info('Trade executed with data', {
+                                result: result,
+                                dataUsage: JSON.parse(JSON.stringify(summary, (key, value) => typeof value === 'bigint'
+                                    ? value.toString()
+                                    : value // return everything else unchanged
+                                ))
+                            });
                         }
                         else {
                             this.logger.error('Trade failed', new Error(result.error));
@@ -121,6 +130,13 @@ class Agent {
                 else {
                     this.logger.debug('No trade signal generated');
                 }
+                // Regularly report data usage
+                const dataSummary = this.marketFetcher.getUsageSummary();
+                this.logger.info('Agent data usage', {
+                    summary: JSON.parse(JSON.stringify(dataSummary, (key, value) => typeof value === 'bigint'
+                        ? value.toString()
+                        : value))
+                });
                 // Sleep until next check
                 const sleepTime = Math.max(0, nextCheckTime - Math.floor(Date.now() / 1000)) * 1000;
                 this.logger.debug('Sleeping', { sleepTime });

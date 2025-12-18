@@ -16,6 +16,12 @@ describe('Agent Integration', () => {
             agentRegistryAddress: '0x' + '5'.repeat(40),
             maxPositionSize: BigInt(1000e18),
             rebalanceInterval: 3600,
+            x402BaseUrl: 'http://localhost:3000',
+            x402Config: {
+                method: 'mock' as any,
+                mockBalance: BigInt(1000e18),
+                agentId: 1
+            }
         };
 
         const logger = createLogger('debug');

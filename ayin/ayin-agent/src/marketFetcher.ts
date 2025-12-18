@@ -1,5 +1,7 @@
 import { ethers } from 'ethers';
 import { Market, Logger } from './types';
+import { X402Client } from './x402Client';
+import { PaymentConfig } from './x402Types';
 
 // Minimal ABI for PredictionMarket
 const MARKET_ABI = [
@@ -10,23 +12,27 @@ const MARKET_ABI = [
 export class MarketFetcher {
     private contract: ethers.Contract;
     private logger: Logger;
+    private x402Client: X402Client;
 
     constructor(
         marketAddress: string,
         rpcUrl: string,
+        x402BaseUrl: string,
+        x402Config: PaymentConfig,
         logger: Logger
     ) {
         const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
         this.contract = new ethers.Contract(marketAddress, MARKET_ABI, provider);
         this.logger = logger;
+        this.x402Client = new X402Client(x402BaseUrl, x402Config, logger);
     }
 
     /**
      * Fetch market state by ID
      */
-    async getMarket(marketId: number): Promise<Market | null> {
+    async getMarket(marketId: number, includeSignals = false): Promise<Market | null> {
         try {
-            this.logger.debug('Fetching market', { marketId });
+            this.logger.debug('Fetching market', { marketId, includeSignals });
 
             const [
                 id,
@@ -39,6 +45,30 @@ export class MarketFetcher {
                 noLiquidity,
                 resolver,
             ] = await this.contract.getMarket(marketId);
+
+            // Get premium data via x402 (if requested)
+            let yesProbability = 50; // Default
+            if (includeSignals) {
+                try {
+                    const response = await this.x402Client.fetchData<any>({
+                        endpoint: `/market/${marketId}/data`,
+                    });
+                    // Assuming response data has probability info.
+                    // The server returns: { yesProbability: 67, ... }
+                    if (response.data && typeof response.data.yesProbability === 'number') {
+                        yesProbability = response.data.yesProbability;
+                    }
+                } catch (error) {
+                    this.logger.warn('Could not fetch premium market data', error as any);
+                }
+            } else {
+                // Fallback to estimation locally if no premium fetch
+                const total = BigInt(yesLiquidity.toString()) + BigInt(noLiquidity.toString());
+                if (total > BigInt(0)) {
+                    yesProbability = Number((BigInt(yesLiquidity.toString()) * BigInt(100)) / total);
+                    yesProbability = Math.round(yesProbability);
+                }
+            }
 
             const statusEnum = ['OPEN', 'RESOLVED', 'SETTLED'][status] || 'UNKNOWN';
 
@@ -79,11 +109,27 @@ export class MarketFetcher {
      * Simple model: YES prob = yesLiquidity / (yesLiquidity + noLiquidity)
      */
     estimateYesProbability(market: Market): number {
+        // If we fetched premium already, we might want to trust that?
+        // But for now keeping this logic separate or purely calculative.
         const total = market.yesLiquidity + market.noLiquidity;
         if (total === BigInt(0)) return 50; // No trading yet, assume 50/50
 
         const yesProb = Number((market.yesLiquidity * BigInt(100)) / total);
         return Math.round(yesProb);
+    }
+
+    /**
+    * Get data usage logs from x402 client
+    */
+    getDataUsageLogs() {
+        return this.x402Client.getUsageLogs();
+    }
+
+    /**
+    * Get usage summary
+    */
+    getUsageSummary() {
+        return this.x402Client.getUsageSummary();
     }
 
     private serializeMarket(market: Market): any {

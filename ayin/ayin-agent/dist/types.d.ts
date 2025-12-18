@@ -74,6 +74,7 @@ export interface ExecutionResult {
     error?: string;
     gasUsed?: bigint;
 }
+import { PaymentConfig } from './x402Types';
 export interface AgentConfig {
     agentPrivateKey: string;
     agentId: number;
@@ -86,6 +87,8 @@ export interface AgentConfig {
     agentRegistryAddress: string;
     maxPositionSize: bigint;
     rebalanceInterval: number;
+    x402BaseUrl: string;
+    x402Config: PaymentConfig;
 }
 export interface Logger {
     info(msg: string, data?: Record<string, unknown>): void;

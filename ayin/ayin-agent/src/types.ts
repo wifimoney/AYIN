@@ -108,6 +108,8 @@ export interface ExecutionResult {
 // AGENT CONFIG
 // ============================================================================
 
+import { PaymentConfig } from './x402Types';
+
 export interface AgentConfig {
     agentPrivateKey: string;
     agentId: number;
@@ -124,6 +126,10 @@ export interface AgentConfig {
     // Strategy
     maxPositionSize: bigint;
     rebalanceInterval: number;  // seconds
+
+    // x402
+    x402BaseUrl: string;
+    x402Config: PaymentConfig;
 }
 
 // ============================================================================

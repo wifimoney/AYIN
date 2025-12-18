@@ -35,6 +35,8 @@ export class Agent {
         this.marketFetcher = new MarketFetcher(
             config.predictionMarketAddress,
             config.rpcUrl,
+            config.x402BaseUrl,
+            config.x402Config,
             logger
         );
 
@@ -121,7 +123,8 @@ export class Agent {
             }
 
             // Fetch all open markets (simplified: just marketId 1 for MVP)
-            const market = await this.marketFetcher.getMarket(1);
+            // Use X402 client implicitly via updated MarketFetcher
+            const market = await this.marketFetcher.getMarket(1, true); // true = include premium signals if possible
             if (!market) {
                 this.logger.error('Could not fetch market');
                 return null;
@@ -181,7 +184,16 @@ export class Agent {
                         );
 
                         if (result.success) {
-                            this.logger.info('Trade executed', result as any);
+                            // Log execution + data costs
+                            const summary = this.marketFetcher.getUsageSummary();
+                            this.logger.info('Trade executed with data', {
+                                result: result as any,
+                                dataUsage: JSON.parse(JSON.stringify(summary, (key, value) =>
+                                    typeof value === 'bigint'
+                                        ? value.toString()
+                                        : value // return everything else unchanged
+                                ))
+                            });
                         } else {
                             this.logger.error('Trade failed', new Error(result.error));
                         }
@@ -189,6 +201,16 @@ export class Agent {
                 } else {
                     this.logger.debug('No trade signal generated');
                 }
+
+                // Regularly report data usage
+                const dataSummary = this.marketFetcher.getUsageSummary();
+                this.logger.info('Agent data usage', {
+                    summary: JSON.parse(JSON.stringify(dataSummary, (key, value) =>
+                        typeof value === 'bigint'
+                            ? value.toString()
+                            : value
+                    ))
+                });
 
                 // Sleep until next check
                 const sleepTime = Math.max(0, nextCheckTime - Math.floor(Date.now() / 1000)) * 1000;

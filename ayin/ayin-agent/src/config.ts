@@ -21,6 +21,8 @@ function loadEnvNumber(key: string, defaultValue?: number): number {
     return Number(value);
 }
 
+import { PaymentMethod } from './x402Types';
+
 export function loadConfig(): AgentConfig {
     return {
         agentPrivateKey: loadEnv('AGENT_PRIVATE_KEY'),
@@ -36,6 +38,13 @@ export function loadConfig(): AgentConfig {
 
         maxPositionSize: loadEnvBigInt('MAX_POSITION_SIZE', BigInt(1000e18)),
         rebalanceInterval: loadEnvNumber('REBALANCE_INTERVAL', 3600),
+
+        x402BaseUrl: loadEnv('X402_BASE_URL', 'http://localhost:3000'),
+        x402Config: {
+            method: (process.env.X402_PAYMENT_METHOD as PaymentMethod) || PaymentMethod.MOCK,
+            mockBalance: loadEnvBigInt('X402_MOCK_BALANCE', BigInt(1000000)),
+            agentId: loadEnvNumber('AGENT_ID', 1)
+        }
     };
 }
 
