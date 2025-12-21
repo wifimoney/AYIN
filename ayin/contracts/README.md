@@ -47,9 +47,27 @@ $ anvil
 
 ### Deploy
 
+Deploy all contracts to Base network:
+
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+# Base Sepolia (for testing)
+$ forge script script/Deploy.s.sol:DeployScript \
+  --rpc-url https://sepolia.base.org \
+  --broadcast \
+  --verify \
+  --etherscan-api-key $BASESCAN_API_KEY \
+  -vvvv
+
+# Base Mainnet (for production)
+$ forge script script/Deploy.s.sol:DeployScript \
+  --rpc-url https://mainnet.base.org \
+  --broadcast \
+  --verify \
+  --etherscan-api-key $BASESCAN_API_KEY \
+  -vvvv
 ```
+
+**See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment and verification instructions.**
 
 ### Cast
 
