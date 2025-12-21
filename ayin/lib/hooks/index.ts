@@ -17,4 +17,5 @@ export {
   OnchainAgentType,
   type OnchainAgentData,
 } from './useOnchainAgent';
+export { useDelegationPolicy, type CreateMandateParams } from './useDelegationPolicy';
 
