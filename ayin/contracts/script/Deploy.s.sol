@@ -6,6 +6,7 @@ import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {DelegationPolicy} from "../src/DelegationPolicy.sol";
 import {PredictionMarket} from "../src/PredictionMarket.sol";
 import {AyinSmartAccount} from "../src/AyinSmartAccount.sol";
+import {Counter} from "../src/Counter.sol";
 
 /**
  * @title DeployScript
@@ -61,6 +62,13 @@ contract DeployScript is Script {
         console.log("Owner:", owner);
         console.log("===========================================");
 
+        // 5. Deploy Counter (test/example contract)
+        Counter counter = new Counter();
+        console.log("===========================================");
+        console.log("Counter deployed at:");
+        console.log(address(counter));
+        console.log("===========================================");
+
         // Summary
         console.log("\n===========================================");
         console.log("DEPLOYMENT SUMMARY");
@@ -69,6 +77,7 @@ contract DeployScript is Script {
         console.log("DelegationPolicy:", address(delegationPolicy));
         console.log("PredictionMarket:", address(predictionMarket));
         console.log("AyinSmartAccount (example):", address(smartAccount));
+        console.log("Counter:", address(counter));
         console.log("===========================================");
         console.log("\nNext steps:");
         console.log("1. Update lib/contracts.ts with these addresses");
