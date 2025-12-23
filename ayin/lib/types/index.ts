@@ -47,6 +47,7 @@ export interface Market {
   confidence: number;
   endDate: string;
   category: string;
+  address?: string; // Contract address for the market
 }
 
 /**
@@ -89,6 +90,20 @@ export interface Reputation {
 export interface ReputationHistoryEntry {
   date: string;
   score: number;
+}
+
+/**
+ * Represents an action taken by an agent
+ */
+export interface AgentAction {
+  id: string;
+  agentId: string;
+  agentName: string;
+  type: 'buy' | 'sell' | 'adjust' | 'stop';
+  action: string;
+  market: string;
+  timestamp: string;
+  txHash?: string;
 }
 
 /**

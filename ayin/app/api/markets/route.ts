@@ -11,6 +11,7 @@ const MOCK_MARKETS: Market[] = [
     confidence: 4,
     endDate: 'May 31, 2025',
     category: 'Crypto',
+    address: '0x1234567890AbcdEF1234567890abcDEF12345678',
   },
   {
     id: '2',
@@ -20,6 +21,7 @@ const MOCK_MARKETS: Market[] = [
     confidence: 8,
     endDate: 'Sep 30, 2025',
     category: 'Economics',
+    address: '0x2345678901BCdeF2345678901bcDEF23456789',
   },
   {
     id: '3',
@@ -29,6 +31,7 @@ const MOCK_MARKETS: Market[] = [
     confidence: 3,
     endDate: 'Dec 31, 2025',
     category: 'AI',
+    address: '0x3456789012CDef3456789012cdEF3456789012',
   },
   {
     id: '4',
@@ -38,6 +41,7 @@ const MOCK_MARKETS: Market[] = [
     confidence: 6,
     endDate: 'Dec 31, 2025',
     category: 'Crypto',
+    address: '0x4567890123DEfg4567890123deFG4567890123',
   },
   {
     id: '5',
@@ -47,6 +51,7 @@ const MOCK_MARKETS: Market[] = [
     confidence: 2,
     endDate: 'Aug 15, 2025',
     category: 'Space',
+    address: '0x5678901234EFgh5678901234efGH5678901234',
   },
   {
     id: '6',
@@ -56,6 +61,7 @@ const MOCK_MARKETS: Market[] = [
     confidence: 5,
     endDate: 'Aug 12, 2025',
     category: 'Economics',
+    address: '0x6789012345FGhi6789012345fgHI6789012345',
   },
 ];
 

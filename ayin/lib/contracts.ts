@@ -15,10 +15,10 @@
 // ⚠️ IMPORTANT: After deployment, replace these addresses with actual deployed addresses
 // Addresses are FROZEN after deployment - judges will verify on BaseScan
 export const CONTRACTS_BASE_SEPOLIA = {
-  AgentRegistry: '0x0000000000000000000000000000000000000000', // TODO: Deploy and replace
-  DelegationPolicy: '0x0000000000000000000000000000000000000000', // TODO: Deploy and replace
-  AyinSmartAccount: '0x0000000000000000000000000000000000000000', // TODO: Deploy and replace (if factory pattern)
-  PredictionMarket: '0x0000000000000000000000000000000000000000', // TODO: Deploy and replace
+  AgentRegistry: '0xD585649d1d8170B72b9A332bE9E0aA03e056c61f',
+  DelegationPolicy: '0xF7A24BFE63904DAa1d3Ea1020Bc356FDb1adb3DE',
+  AyinSmartAccount: '0xeFdfaA65c2dB1099D9fE168FBc7B4f90266f076E',
+  PredictionMarket: '0x6056a0bAA7d6BD6c0aA27feee847C11fb5eb5BD9',
 } as const;
 
 // Base Mainnet (for production)
@@ -57,7 +57,7 @@ export function getContractAddress(
   const defaultChainId = typeof window !== 'undefined'
     ? parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '84532', 10)
     : 84532;
-  
+
   const contracts = getContracts(chainId || defaultChainId);
   return contracts[contractName];
 }

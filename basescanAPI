@@ -1,0 +1,1755 @@
+A# Ayin MVP: Complete Step-by-Step Implementation Guide
+
+**Goal:** Fix all critical blockers and get the app fully working end-to-end.
+
+**Total time:** ~12-16 hours spread over 2-3 days
+
+**End result:** Fully functional prediction market agent delegation system on Base Sepolia with persistent storage and real agent execution.
+
+---
+
+## PHASE 1: Deploy Smart Contracts (30 minutes)
+
+### Step 1.1: Prepare Deployment Environment
+
+```bash
+cd ayin/contracts
+
+# Install Forge (if not already installed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Verify installation
+forge --version
+```
+
+### Step 1.2: Set Up Environment Variables
+
+**File:** `ayin/contracts/.env`
+
+```bash
+# Private key of deployer account (with testnet funds)
+PRIVATE_KEY=0x...your_private_key_here...
+
+# Base Sepolia RPC endpoint
+RPC_URL=https://sepolia.base.org
+
+# BaseScan API key for verification
+BASESCAN_API_KEY=your_basescan_api_key_here
+```
+
+**How to get these:**
+```
+PRIVATE_KEY:
+  1. Use a test wallet (MetaMask, Hardhat account, etc)
+  2. Export private key (⚠️ Never use for mainnet or real funds)
+  3. Copy without "0x" prefix, add it back in .env
+
+BASESCAN_API_KEY:
+  1. Go to https://basescan.org/apis
+  2. Create account & generate API key
+  3. Paste in .env
+```
+
+### Step 1.3: Fund Your Deployer Account
+
+**Get Base Sepolia ETH:**
+
+1. Go to https://www.alchemy.com/faucets/base-sepolia
+2. Connect your wallet
+3. Request 0.5 ETH
+4. Wait 1 minute for funds to appear
+
+**Verify funding:**
+```bash
+# Check balance (replace with your address)
+curl https://sepolia-base.g.alchemy.com/v2/YOUR_ALCHEMY_KEY \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0xYourAddress","latest"],"id":1}'
+```
+
+### Step 1.4: Deploy Contracts
+
+```bash
+# From ayin/contracts directory
+cd ayin/contracts
+
+# Run deployment script
+forge script script/Deploy.s.sol:DeployScript \
+  --rpc-url https://sepolia.base.org \
+  --broadcast \
+  --verify \
+  --etherscan-api-key $BASESCAN_API_KEY \
+  -vvvv
+```
+
+**Expected output:**
+```
+...
+==== Deployment successful ====
+AgentRegistry deployed at: 0x1234...
+DelegationPolicy deployed at: 0x5678...
+PredictionMarket deployed at: 0xABCD...
+AyinSmartAccount deployed at: 0xEF01...
+==== Verification ====
+...
+```
+
+### Step 1.5: Extract & Save Deployed Addresses
+
+**What you'll see after deployment:**
+```
+Logs:
+  AgentRegistry: 0x1234...
+  DelegationPolicy: 0x5678...
+  PredictionMarket: 0xABCD...
+  AyinSmartAccount: 0xEF01...
+```
+
+**File:** `ayin/apps/web/lib/contracts.ts`
+
+Replace the zero addresses with your deployed addresses:
+
+```typescript
+// BEFORE (current - all zeros)
+export const AGENT_REGISTRY_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const DELEGATION_POLICY_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const PREDICTION_MARKET_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const AYIN_SMART_ACCOUNT_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+// AFTER (with your deployed addresses)
+export const AGENT_REGISTRY_ADDRESS = '0x1234...'; // Your AgentRegistry address
+export const DELEGATION_POLICY_ADDRESS = '0x5678...'; // Your DelegationPolicy address
+export const PREDICTION_MARKET_ADDRESS = '0xABCD...'; // Your PredictionMarket address
+export const AYIN_SMART_ACCOUNT_ADDRESS = '0xEF01...'; // Your AyinSmartAccount address
+```
+
+### Step 1.6: Verify Contracts on BaseScan
+
+Go to `https://sepolia.basescan.org/address/0x1234...` (replace with your address)
+
+You should see:
+- Contract code verified ✅
+- Read/Write functions available
+- Transaction history
+
+**Checklist:**
+- [ ] Deployer account has Base Sepolia ETH
+- [ ] Deployment script runs without errors
+- [ ] All 4 contract addresses obtained
+- [ ] Addresses updated in lib/contracts.ts
+- [ ] Contracts verified on BaseScan
+
+---
+
+## PHASE 2: Set Up Database (1-2 hours)
+
+### Step 2.1: Create Supabase Project
+
+1. Go to https://supabase.com
+2. Click "New Project"
+3. Name: `ayin-mvp`
+4. Region: Closest to you
+5. Password: Generate strong password (save it!)
+6. Click "Create new project"
+
+**Wait ~2 minutes for creation**
+
+### Step 2.2: Create Database Tables
+
+**Go to:** SQL Editor → New Query
+
+**Paste this entire script:**
+
+```sql
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Agents table (stores agent metadata)
+CREATE TABLE IF NOT EXISTS agents (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  operator TEXT NOT NULL,
+  strategy TEXT,
+  reputation_score NUMERIC DEFAULT 0,
+  total_trades INTEGER DEFAULT 0,
+  win_rate NUMERIC DEFAULT 0,
+  total_pnl NUMERIC DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Delegations table (stores delegation records)
+CREATE TABLE IF NOT EXISTS delegations (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL REFERENCES agents(id),
+  user_address TEXT NOT NULL,
+  tx_hash TEXT,
+  status TEXT DEFAULT 'pending', -- pending, active, revoked
+  allocation NUMERIC,
+  duration INTEGER, -- in seconds
+  max_drawdown NUMERIC,
+  stop_loss_pct NUMERIC,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP
+);
+
+-- Agent actions table (logs agent activity)
+CREATE TABLE IF NOT EXISTS agent_actions (
+  id SERIAL PRIMARY KEY,
+  agent_id TEXT NOT NULL REFERENCES agents(id),
+  action_type TEXT NOT NULL, -- 'trade', 'revoke', 'update', etc
+  market TEXT,
+  direction TEXT, -- 'YES' or 'NO'
+  size NUMERIC,
+  price NUMERIC,
+  tx_hash TEXT,
+  status TEXT DEFAULT 'pending', -- pending, success, failed
+  result TEXT, -- 'WIN', 'LOSS', 'BREAK'
+  pnl NUMERIC,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Markets table (if needed for caching)
+CREATE TABLE IF NOT EXISTS markets (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  probability NUMERIC,
+  yes_price NUMERIC,
+  no_price NUMERIC,
+  volume NUMERIC,
+  end_date TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create indexes for faster queries
+CREATE INDEX IF NOT EXISTS idx_delegations_agent_id ON delegations(agent_id);
+CREATE INDEX IF NOT EXISTS idx_delegations_user_address ON delegations(user_address);
+CREATE INDEX IF NOT EXISTS idx_agent_actions_agent_id ON agent_actions(agent_id);
+CREATE INDEX IF NOT EXISTS idx_agent_actions_created_at ON agent_actions(created_at);
+
+-- Insert sample agents for testing
+INSERT INTO agents (id, name, operator, strategy, reputation_score, is_active)
+VALUES
+  ('agent-1', 'Sentinel Alpha', '0x742d35Cc6634C0532925a3b844Bc9e7595f42e53', 'DIRECTIONAL', 85, true),
+  ('agent-2', 'Balanced Beta', '0x8ba1f109551bD432803012645Ac136ddd64DBA72', 'BALANCED', 78, true),
+  ('agent-3', 'Risk Gamma', '0x1234567890123456789012345678901234567890', 'AGGRESSIVE', 72, true)
+ON CONFLICT DO NOTHING;
+```
+
+**Click "Run"**
+
+### Step 2.3: Get Supabase Connection Info
+
+**Go to:** Settings → Database
+
+Copy these:
+```
+Host: db.xxx.supabase.co
+Port: 5432
+Database: postgres
+User: postgres
+Password: [your-password-from-step-1]
+```
+
+### Step 2.4: Set Up Environment Variables
+
+**File:** `ayin/apps/web/.env.local`
+
+Add database connection:
+
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
+SUPABASE_SERVICE_KEY=eyJhbG... # Get from Settings → API
+
+# Smart Contracts (from Phase 1)
+NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS=0x1234...
+NEXT_PUBLIC_DELEGATION_POLICY_ADDRESS=0x5678...
+NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS=0xABCD...
+NEXT_PUBLIC_AYIN_SMART_ACCOUNT_ADDRESS=0xEF01...
+
+# Wallet & Chain
+NEXT_PUBLIC_CHAIN_ID=84532
+NEXT_PUBLIC_RPC_URL=https://sepolia.base.org
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
+```
+
+**How to get Supabase keys:**
+1. Go to Settings → API
+2. Find `anon` key → Copy
+3. Find `service_role` key → Copy (use as SERVICE_KEY)
+
+### Step 2.5: Test Database Connection
+
+**File:** `ayin/apps/web/lib/supabaseClient.ts`
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Test connection
+export async function testDatabaseConnection() {
+  const { data, error } = await supabase
+    .from('agents')
+    .select('*')
+    .limit(1);
+
+  if (error) {
+    console.error('Database connection failed:', error);
+    return false;
+  }
+
+  console.log('✅ Database connected! Found agents:', data?.length);
+  return true;
+}
+```
+
+**Run in browser console:**
+```javascript
+import { testDatabaseConnection } from '@/lib/supabaseClient';
+await testDatabaseConnection();
+// Should see: "✅ Database connected! Found agents: 3"
+```
+
+**Checklist:**
+- [ ] Supabase project created
+- [ ] All 5 tables created (agents, delegations, agent_actions, markets)
+- [ ] Sample agents inserted
+- [ ] Supabase URL & keys obtained
+- [ ] .env.local updated with Supabase credentials
+- [ ] Database connection test passes
+
+---
+
+## PHASE 3: Migrate API Routes to Use Database (2-3 hours)
+
+### Step 3.1: Update /api/agents Route
+
+**File:** `ayin/apps/web/app/api/agents/route.ts`
+
+**BEFORE (current - mock data):**
+
+```typescript
+export async function GET() {
+  const agents = [
+    { id: '1', name: 'Sentinel Alpha', ... },
+    { id: '2', name: 'Balanced Beta', ... },
+  ];
+  return Response.json(agents);
+}
+```
+
+**AFTER (using database):**
+
+```typescript
+import { supabase } from '@/lib/supabaseClient';
+
+export async function GET() {
+  try {
+    const { data: agents, error } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('is_active', true);
+
+    if (error) throw error;
+
+    return Response.json(agents || []);
+  } catch (error) {
+    console.error('Error fetching agents:', error);
+    return Response.json({ error: 'Failed to fetch agents' }, { status: 500 });
+  }
+}
+```
+
+### Step 3.2: Update /api/delegations Route
+
+**File:** `ayin/apps/web/app/api/delegations/route.ts`
+
+**AFTER (using database):**
+
+```typescript
+import { supabase } from '@/lib/supabaseClient';
+import { NextRequest } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  try {
+    const userAddress = request.nextUrl.searchParams.get('user');
+
+    let query = supabase.from('delegations').select('*');
+
+    if (userAddress) {
+      query = query.eq('user_address', userAddress);
+    }
+
+    const { data: delegations, error } = await query;
+
+    if (error) throw error;
+
+    return Response.json(delegations || []);
+  } catch (error) {
+    console.error('Error fetching delegations:', error);
+    return Response.json(
+      { error: 'Failed to fetch delegations' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    const { data, error } = await supabase
+      .from('delegations')
+      .insert([
+        {
+          id: `delegation-${Date.now()}`,
+          agent_id: body.agentId,
+          user_address: body.userAddress,
+          status: 'pending',
+          allocation: body.allocation,
+          duration: body.duration,
+          max_drawdown: body.maxDrawdown,
+          stop_loss_pct: body.stopLossPct,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return Response.json(data);
+  } catch (error) {
+    console.error('Error creating delegation:', error);
+    return Response.json(
+      { error: 'Failed to create delegation' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Step 3.3: Create /api/agent-actions Route
+
+**File:** `ayin/apps/web/app/api/agent-actions/route.ts` (NEW FILE)
+
+```typescript
+import { supabase } from '@/lib/supabaseClient';
+import { NextRequest } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  try {
+    const agentId = request.nextUrl.searchParams.get('agentId');
+    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '50');
+
+    let query = supabase
+      .from('agent_actions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (agentId) {
+      query = query.eq('agent_id', agentId);
+    }
+
+    const { data: actions, error } = await query;
+
+    if (error) throw error;
+
+    return Response.json(actions || []);
+  } catch (error) {
+    console.error('Error fetching agent actions:', error);
+    return Response.json(
+      { error: 'Failed to fetch agent actions' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    const { data, error } = await supabase
+      .from('agent_actions')
+      .insert([
+        {
+          agent_id: body.agentId,
+          action_type: body.actionType, // 'trade', 'revoke', etc
+          market: body.market,
+          direction: body.direction, // 'YES' or 'NO'
+          size: body.size,
+          price: body.price,
+          tx_hash: body.txHash,
+          status: body.status || 'pending',
+          result: body.result, // 'WIN', 'LOSS', 'BREAK'
+          pnl: body.pnl,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return Response.json(data);
+  } catch (error) {
+    console.error('Error creating agent action:', error);
+    return Response.json(
+      { error: 'Failed to create agent action' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Step 3.4: Create /api/agents/{id} Route
+
+**File:** `ayin/apps/web/app/api/agents/[id]/route.ts` (NEW FILE)
+
+```typescript
+import { supabase } from '@/lib/supabaseClient';
+import { NextRequest } from 'next/server';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { data: agent, error } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('id', params.id)
+      .single();
+
+    if (error) throw error;
+
+    if (!agent) {
+      return Response.json({ error: 'Agent not found' }, { status: 404 });
+    }
+
+    return Response.json(agent);
+  } catch (error) {
+    console.error('Error fetching agent:', error);
+    return Response.json(
+      { error: 'Failed to fetch agent' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await request.json();
+
+    const { data, error } = await supabase
+      .from('agents')
+      .update(body)
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return Response.json(data);
+  } catch (error) {
+    console.error('Error updating agent:', error);
+    return Response.json(
+      { error: 'Failed to update agent' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Step 3.5: Test API Endpoints
+
+```bash
+# Start dev server
+cd ayin/apps/web
+npm run dev
+
+# In another terminal, test endpoints
+curl http://localhost:3000/api/agents
+
+# Should return:
+# [
+#   { id: "agent-1", name: "Sentinel Alpha", ... },
+#   { id: "agent-2", name: "Balanced Beta", ... },
+#   ...
+# ]
+```
+
+**Checklist:**
+- [ ] /api/agents returns database agents (not mocks)
+- [ ] /api/delegations returns database delegations
+- [ ] /api/agent-actions endpoint created
+- [ ] /api/agents/{id} endpoint created
+- [ ] All endpoints tested and returning real data
+
+---
+
+## PHASE 4: Connect Activity Feed to Real Data (1 hour)
+
+### Step 4.1: Update ActivityFeed Component
+
+**File:** `ayin/apps/web/components/ActivityFeed.tsx`
+
+**BEFORE (current - hardcoded):**
+
+```typescript
+export function ActivityFeed() {
+  const activities = [
+    { id: 1, agent: 'Sentinel Alpha', action: 'Opened position', ... },
+    { id: 2, agent: 'Balanced Beta', action: 'Closed position', ... },
+  ];
+
+  return (
+    <div>
+      {activities.map(activity => (
+        <div key={activity.id}>{activity.agent}: {activity.action}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+**AFTER (fetch real data):**
+
+```typescript
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface AgentAction {
+  id: number;
+  agent_id: string;
+  action_type: string;
+  market: string;
+  direction: string;
+  size: number;
+  price: number;
+  result: string;
+  pnl: number;
+  created_at: string;
+}
+
+export function ActivityFeed() {
+  const [activities, setActivities] = useState<AgentAction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchActivities() {
+      try {
+        const response = await fetch('/api/agent-actions?limit=10');
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        setActivities(data);
+      } catch (err) {
+        setError('Failed to load activities');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchActivities();
+
+    // Poll every 30 seconds for new activities
+    const interval = setInterval(fetchActivities, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+
+  if (activities.length === 0) {
+    return (
+      <div className="text-gray-500 text-center py-8">
+        No recent activities. Agents will appear here once they trade.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {activities.map((activity) => (
+        <div
+          key={activity.id}
+          className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">
+                Agent {activity.agent_id}: {activity.action_type}
+              </p>
+              <p className="text-xs text-gray-600">
+                {activity.market} • {activity.direction} • Size: {activity.size} Ⓞ
+              </p>
+            </div>
+            <div className="text-right">
+              <p
+                className={`font-bold text-sm ${
+                  activity.result === 'WIN'
+                    ? 'text-green-600'
+                    : activity.result === 'LOSS'
+                      ? 'text-red-600'
+                      : 'text-gray-600'
+                }`}
+              >
+                {activity.result}
+              </p>
+              <p className="text-xs text-gray-500">
+                {new Date(activity.created_at).toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### Step 4.2: Test Activity Feed
+
+1. Go to dashboard
+2. Activity feed should show 3 sample activities (or empty if no agents have traded)
+3. Check browser console for any errors
+
+**Checklist:**
+- [ ] ActivityFeed fetches real data from /api/agent-actions
+- [ ] Loading skeleton shows while fetching
+- [ ] Empty state shows when no activities
+- [ ] Activities display with correct format
+
+---
+
+## PHASE 5: Register Agents Onchain (1 hour)
+
+### Step 5.1: Create Agent Registration Script
+
+**File:** `ayin/scripts/registerAgents.ts`
+
+```typescript
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
+import { abi as AGENT_REGISTRY_ABI } from '../contracts/out/AgentRegistry.sol/AgentRegistry.json';
+
+const AGENT_REGISTRY_ADDRESS = process.env.AGENT_REGISTRY_ADDRESS as `0x${string}`;
+const PRIVATE_KEY = process.env.PRIVATE_KEY as `0x${string}`;
+
+const account = privateKeyToAccount(PRIVATE_KEY);
+
+const publicClient = createPublicClient({
+  chain: baseSepolia,
+  transport: http(),
+});
+
+const walletClient = createWalletClient({
+  chain: baseSepolia,
+  transport: http(),
+  account,
+});
+
+async function registerAgent(name: string, operator: `0x${string}`) {
+  console.log(`\n📝 Registering agent: ${name}`);
+  console.log(`   Operator: ${operator}`);
+
+  try {
+    // Check if already registered
+    const isRegistered = await publicClient.readContract({
+      address: AGENT_REGISTRY_ADDRESS,
+      abi: AGENT_REGISTRY_ABI,
+      functionName: 'isAgent',
+      args: [operator],
+    });
+
+    if (isRegistered) {
+      console.log('   ⚠️  Already registered, skipping');
+      return;
+    }
+
+    // Register agent
+    const hash = await walletClient.writeContract({
+      address: AGENT_REGISTRY_ADDRESS,
+      abi: AGENT_REGISTRY_ABI,
+      functionName: 'registerAgent',
+      args: [operator, name],
+    });
+
+    console.log(`   ⏳ Tx hash: ${hash}`);
+
+    // Wait for confirmation
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+    if (receipt.status === 'success') {
+      console.log('   ✅ Registered successfully!');
+    } else {
+      console.log('   ❌ Registration failed');
+    }
+  } catch (error) {
+    console.error('   ❌ Error:', error);
+  }
+}
+
+async function main() {
+  console.log('🚀 Starting agent registration...');
+  console.log(`Registry address: ${AGENT_REGISTRY_ADDRESS}`);
+  console.log(`Deployer: ${account.address}`);
+
+  // Register 3 sample agents
+  await registerAgent('Sentinel Alpha', '0x742d35Cc6634C0532925a3b844Bc9e7595f42e53');
+  await registerAgent('Balanced Beta', '0x8ba1f109551bD432803012645Ac136ddd64DBA72');
+  await registerAgent('Risk Gamma', '0x1234567890123456789012345678901234567890');
+
+  console.log('\n✅ All agents registered!');
+}
+
+main().catch(console.error);
+```
+
+### Step 5.2: Run Registration Script
+
+```bash
+cd ayin
+
+# Install viem if not already installed
+npm install viem
+
+# Run script
+AGENT_REGISTRY_ADDRESS=0x1234... \
+PRIVATE_KEY=0x... \
+npx ts-node scripts/registerAgents.ts
+```
+
+**Expected output:**
+```
+🚀 Starting agent registration...
+Registry address: 0x1234...
+Deployer: 0x742d...
+
+📝 Registering agent: Sentinel Alpha
+   Operator: 0x742d...
+   ⏳ Tx hash: 0xabcd...
+   ✅ Registered successfully!
+
+📝 Registering agent: Balanced Beta
+   Operator: 0x8ba1...
+   ⏳ Tx hash: 0xefgh...
+   ✅ Registered successfully!
+
+📝 Registering agent: Risk Gamma
+   Operator: 0x1234...
+   ⏳ Tx hash: 0xijkl...
+   ✅ Registered successfully!
+
+✅ All agents registered!
+```
+
+### Step 5.3: Verify Onchain
+
+Go to https://sepolia.basescan.org/address/0x1234... (your AgentRegistry)
+
+Under "Transactions" you should see 3 `registerAgent` calls.
+
+**Checklist:**
+- [ ] Registration script created
+- [ ] Script runs without errors
+- [ ] 3 agents successfully registered onchain
+- [ ] Verified on BaseScan
+
+---
+
+## PHASE 6: Fix Delegation Flow & Market Addresses (30 minutes)
+
+### Step 6.1: Update allowedMarkets in Smart Account
+
+**File:** `ayin/apps/web/lib/hooks/useDelegationPolicy.ts`
+
+**BEFORE (current - empty):**
+
+```typescript
+const allowedMarkets: `0x${string}`[] = [];
+```
+
+**AFTER (add real address):**
+
+```typescript
+const allowedMarkets: `0x${string}`[] = [
+  PREDICTION_MARKET_ADDRESS as `0x${string}`, // Your deployed PredictionMarket
+];
+```
+
+### Step 6.2: Add Market Addresses to Delegations
+
+**File:** `ayin/apps/web/app/api/delegations/route.ts`
+
+Update the POST handler:
+
+```typescript
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    const { data, error } = await supabase
+      .from('delegations')
+      .insert([
+        {
+          id: `delegation-${Date.now()}`,
+          agent_id: body.agentId,
+          user_address: body.userAddress,
+          status: 'pending',
+          allocation: body.allocation,
+          duration: body.duration,
+          max_drawdown: body.maxDrawdown,
+          stop_loss_pct: body.stopLossPct,
+          tx_hash: body.txHash, // Add this for tracking
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Log the action to agent_actions table
+    await supabase
+      .from('agent_actions')
+      .insert([
+        {
+          agent_id: body.agentId,
+          action_type: 'delegation_created',
+          market: 'All allowed markets',
+          tx_hash: body.txHash,
+          status: 'pending',
+        },
+      ]);
+
+    return Response.json(data);
+  } catch (error) {
+    console.error('Error creating delegation:', error);
+    return Response.json(
+      { error: 'Failed to create delegation' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Step 6.3: Fix Agent Operator Fetch for Revocation
+
+**File:** `ayin/apps/web/components/ActiveDelegation.tsx`
+
+**BEFORE (current - uses API fallback):**
+
+```typescript
+// Note: We'd need to fetch the agent's operator address from the API
+// For now, fallback to API revocation
+const revokeViaApi = async () => {
+  // ...
+};
+```
+
+**AFTER (fetch real agent data):**
+
+```typescript
+async function handleRevocation() {
+  if (!delegation) return;
+
+  try {
+    setLoading(true);
+
+    // Fetch agent data to get operator address
+    const agentResponse = await fetch(`/api/agents/${delegation.agent_id}`);
+    if (!agentResponse.ok) throw new Error('Failed to fetch agent');
+
+    const agent = await agentResponse.json();
+    const operatorAddress = agent.operator as `0x${string}`;
+
+    // Call revokeAgent with correct operator address
+    const hash = await revokeAgent(operatorAddress);
+
+    // Log the action
+    await fetch('/api/agent-actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        agentId: delegation.agent_id,
+        actionType: 'delegation_revoked',
+        txHash: hash,
+        status: 'pending',
+      }),
+    });
+
+    // Update delegation status in database
+    await fetch(`/api/delegations/${delegation.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'revoked',
+        tx_hash: hash,
+      }),
+    });
+
+    setSuccess(true);
+    
+    // Soft refresh: refetch delegations without reload
+    setTimeout(() => {
+      window.location.reload(); // Will replace with better method in Phase 7
+    }, 2000);
+  } catch (error) {
+    console.error('Revocation failed:', error);
+    setError(error instanceof Error ? error.message : 'Revocation failed');
+  } finally {
+    setLoading(false);
+  }
+}
+```
+
+**Checklist:**
+- [ ] allowedMarkets updated with PredictionMarket address
+- [ ] Delegations POST handler logs to agent_actions
+- [ ] Agent operator fetch implemented for revocation
+- [ ] No more "undefined operator" errors
+
+---
+
+## PHASE 7: Deploy Agent as Background Service (2-3 hours)
+
+### Step 7.1: Create Agent Worker Entry Point
+
+**File:** `ayin/apps/api/src/index.ts` (NEW FILE)
+
+```typescript
+import { startAgent } from '@ayin/agent';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+const AGENT_ID = process.env.AGENT_ID || '1';
+const AGENT_OPERATOR = process.env.AGENT_OPERATOR || '0x742d35Cc6634C0532925a3b844Bc9e7595f42e53';
+const RPC_URL = process.env.RPC_URL || 'https://sepolia.base.org';
+
+async function main() {
+  console.log(`🤖 Starting Agent Worker`);
+  console.log(`   Agent ID: ${AGENT_ID}`);
+  console.log(`   Operator: ${AGENT_OPERATOR}`);
+  console.log(`   RPC: ${RPC_URL}`);
+
+  try {
+    // Start the agent loop
+    await startAgent({
+      agentId: AGENT_ID,
+      operator: AGENT_OPERATOR,
+      rpcUrl: RPC_URL,
+      pollInterval: 30000, // Poll every 30 seconds
+    });
+
+    console.log('✅ Agent worker started!');
+  } catch (error) {
+    console.error('❌ Error starting agent:', error);
+    process.exit(1);
+  }
+}
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM, shutting down...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 Received SIGINT, shutting down...');
+  process.exit(0);
+});
+
+main().catch(console.error);
+```
+
+### Step 7.2: Create Agent Loop with Polling
+
+**File:** `ayin-agent/src/agent.ts`
+
+Update to include persistent polling:
+
+```typescript
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
+
+interface AgentConfig {
+  agentId: string;
+  operator: string;
+  rpcUrl: string;
+  pollInterval: number; // ms
+}
+
+export async function startAgent(config: AgentConfig) {
+  console.log(`[Agent ${config.agentId}] Starting...`);
+
+  const account = privateKeyToAccount(config.operator as `0x${string}`);
+
+  const publicClient = createPublicClient({
+    chain: baseSepolia,
+    transport: http(config.rpcUrl),
+  });
+
+  const walletClient = createWalletClient({
+    chain: baseSepolia,
+    transport: http(config.rpcUrl),
+    account,
+  });
+
+  // Main loop - runs every pollInterval
+  async function runLoop() {
+    try {
+      console.log(`[Agent ${config.agentId}] Polling for opportunities...`);
+
+      // Fetch available markets
+      const marketsResponse = await fetch('http://localhost:3000/api/markets');
+      const markets = await marketsResponse.json();
+
+      // Analyze each market
+      for (const market of markets) {
+        const signal = await analyzeMarket(market);
+
+        if (signal && signal.confidence > 0.6) {
+          console.log(`[Agent ${config.agentId}] Found opportunity:`, signal);
+
+          // Execute trade
+          try {
+            const txHash = await executeTrade(
+              walletClient,
+              market,
+              signal.direction
+            );
+
+            console.log(`[Agent ${config.agentId}] Trade executed:`, txHash);
+
+            // Log to database
+            await fetch('http://localhost:3000/api/agent-actions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                agentId: config.agentId,
+                actionType: 'trade',
+                market: market.id,
+                direction: signal.direction,
+                size: signal.size,
+                price: signal.entryPrice,
+                txHash,
+                status: 'success',
+              }),
+            });
+          } catch (error) {
+            console.error(
+              `[Agent ${config.agentId}] Trade execution failed:`,
+              error
+            );
+          }
+        }
+      }
+
+      // Schedule next loop
+      setTimeout(runLoop, config.pollInterval);
+    } catch (error) {
+      console.error(`[Agent ${config.agentId}] Loop error:`, error);
+      // Retry after error
+      setTimeout(runLoop, config.pollInterval * 2);
+    }
+  }
+
+  // Start the loop
+  runLoop();
+}
+
+async function analyzeMarket(market: any) {
+  // Simple strategy: if probability > 60%, go YES, else go NO
+  const confidence = Math.abs(market.probability - 0.5);
+
+  if (market.probability > 0.6) {
+    return {
+      direction: 'YES',
+      confidence,
+      size: 1, // 1 Ⓞ
+      entryPrice: market.yes_price,
+    };
+  } else if (market.probability < 0.4) {
+    return {
+      direction: 'NO',
+      confidence,
+      size: 1,
+      entryPrice: market.no_price,
+    };
+  }
+
+  return null;
+}
+
+async function executeTrade(walletClient: any, market: any, direction: string) {
+  // This will call your actual prediction market contract
+  console.log(`Executing ${direction} trade on market ${market.id}`);
+
+  // Placeholder - implement actual trade execution
+  return '0xabc...';
+}
+```
+
+### Step 7.3: Create Docker Configuration
+
+**File:** `ayin/docker-compose.yml`
+
+```yaml
+version: '3.9'
+
+services:
+  agent-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    environment:
+      AGENT_ID: '1'
+      AGENT_OPERATOR: '0x742d35Cc6634C0532925a3b844Bc9e7595f42e53'
+      RPC_URL: https://sepolia.base.org
+      NODE_ENV: production
+    networks:
+      - ayin-network
+    restart: unless-stopped
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  web:
+    build:
+      context: ./apps/web
+    ports:
+      - '3000:3000'
+    environment:
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+    networks:
+      - ayin-network
+    restart: unless-stopped
+
+networks:
+  ayin-network:
+    driver: bridge
+```
+
+**File:** `ayin/Dockerfile.agent`
+
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy monorepo files
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY apps/api ./apps/api
+COPY packages/agent ./packages/agent
+
+# Install dependencies
+RUN npm install
+
+# Build
+RUN npm run build --workspace=@ayin/agent
+
+# Run agent
+CMD ["node", "dist/apps/api/src/index.js"]
+```
+
+### Step 7.4: Run Agent Worker Locally
+
+**Option A: Direct Node (for development)**
+
+```bash
+cd ayin
+
+# Install dependencies
+npm install
+
+# Run agent worker
+AGENT_ID=1 \
+AGENT_OPERATOR=0x742d35Cc6634C0532925a3b844Bc9e7595f42e53 \
+RPC_URL=https://sepolia.base.org \
+npm run start:agent
+```
+
+**Option B: Docker (for production)**
+
+```bash
+cd ayin
+
+# Build image
+docker build -f Dockerfile.agent -t ayin-agent .
+
+# Run container
+docker run -e AGENT_ID=1 \
+  -e AGENT_OPERATOR=0x742d35Cc6634C0532925a3b844Bc9e7595f42e53 \
+  -e RPC_URL=https://sepolia.base.org \
+  --name agent-worker \
+  ayin-agent
+```
+
+**Expected output:**
+```
+🤖 Starting Agent Worker
+   Agent ID: 1
+   Operator: 0x742d...
+   RPC: https://sepolia.base.org
+✅ Agent worker started!
+[Agent 1] Polling for opportunities...
+[Agent 1] Polling for opportunities...
+...
+```
+
+**Checklist:**
+- [ ] Agent worker entry point created
+- [ ] Agent loop implemented with polling
+- [ ] Docker configuration created
+- [ ] Agent runs locally without errors
+- [ ] Logs show polling happening every 30s
+
+---
+
+## PHASE 8: Test Full End-to-End Flow (1 hour)
+
+### Step 8.1: Start All Services
+
+**Terminal 1: Database**
+```bash
+# Supabase is already running (cloud)
+echo "✅ Supabase ready"
+```
+
+**Terminal 2: Web App**
+```bash
+cd ayin/apps/web
+npm run dev
+# Listens on http://localhost:3000
+```
+
+**Terminal 3: Agent Worker**
+```bash
+cd ayin
+AGENT_ID=1 \
+AGENT_OPERATOR=0x742d35Cc6634C0532925a3b844Bc9e7595f42e53 \
+RPC_URL=https://sepolia.base.org \
+npm run start:agent
+# Should see polling messages
+```
+
+### Step 8.2: Test User Flow
+
+1. **Open dashboard:** http://localhost:3000
+
+2. **Connect wallet**
+   - Click "Connect Wallet"
+   - Sign message with MetaMask (Base Sepolia)
+   - You're now logged in
+
+3. **View agents**
+   - See "Sentinel Alpha", "Balanced Beta", "Risk Gamma"
+   - All showing reputation scores from database
+
+4. **Create delegation**
+   - Click "Delegate" on an agent
+   - Set allocation: 1 Ⓞ
+   - Set duration: 30 days
+   - Set max drawdown: -20%
+   - Click "Delegate"
+   - Watch transaction in MetaMask
+   - After confirmation, check BaseScan for tx
+
+5. **Watch activity feed**
+   - Activity feed should update with delegation
+   - Agent worker should start monitoring this delegation
+   - Every 30 seconds you'll see polling in Terminal 3
+
+6. **Revoke delegation**
+   - Click "Revoke" on active delegation
+   - Confirm in MetaMask
+   - Delegation status changes to "revoked"
+   - Check BaseScan for revocation tx
+
+### Step 8.3: Verify Database
+
+```bash
+# Open Supabase dashboard
+# Go to SQL Editor
+
+# Run these queries:
+
+-- Check delegations created
+SELECT * FROM delegations ORDER BY created_at DESC;
+
+-- Check agent actions logged
+SELECT * FROM agent_actions ORDER BY created_at DESC;
+
+-- Check agent activity
+SELECT COUNT(*) FROM agent_actions WHERE agent_id = 'agent-1';
+```
+
+### Step 8.4: Check BaseScan
+
+Go to https://sepolia.basescan.org/address/0x... (your deployer address)
+
+You should see transactions for:
+- ✅ registerAgent (3 transactions)
+- ✅ createMandate (1+ transaction)
+- ✅ revokeAgent (0+ transaction)
+
+**Checklist:**
+- [ ] Web app loads at localhost:3000
+- [ ] Agent worker polls every 30 seconds
+- [ ] Can create delegation successfully
+- [ ] Transaction appears on BaseScan
+- [ ] Database shows delegation created
+- [ ] Can revoke delegation
+- [ ] Activity feed updates in real-time
+- [ ] All 3 services running without errors
+
+---
+
+## PHASE 9: Polish & Improvements (1-2 hours)
+
+### Step 9.1: Replace window.reload() with State Update
+
+**File:** `ayin/apps/web/components/ActiveDelegation.tsx`
+
+**BEFORE:**
+```typescript
+setSuccess(true);
+setTimeout(() => {
+  window.location.reload();
+}, 2000);
+```
+
+**AFTER:**
+```typescript
+setSuccess(true);
+
+// Refetch delegations using React Query
+queryClient.invalidateQueries({ queryKey: ['delegations', userAddress] });
+
+// Or use SWR
+mutate();
+
+// Or manual state update
+setTimeout(() => {
+  setDelegations((prev) =>
+    prev.map((d) =>
+      d.id === delegation.id ? { ...d, status: 'revoked' } : d
+    )
+  );
+}, 1000);
+```
+
+### Step 9.2: Add Error Boundaries
+
+**File:** `ayin/apps/web/app/layout.tsx`
+
+```typescript
+import ErrorBoundary from '@/components/ErrorBoundary';
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html>
+      <body>
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+      </body>
+    </html>
+  );
+}
+```
+
+**File:** `ayin/apps/web/components/ErrorBoundary.tsx`
+
+```typescript
+'use client';
+
+import { ReactNode } from 'react';
+
+interface Props {
+  children: ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export default class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Error caught:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 bg-red-50 border border-red-200 rounded">
+          <h2 className="text-red-800 font-bold">Something went wrong</h2>
+          <p className="text-red-700 mt-2">{this.state.error?.message}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded"
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+```
+
+### Step 9.3: Add Loading & Empty States
+
+**Update all components to show:**
+- Loading skeletons while fetching
+- Empty state messages when no data
+- Error states with retry buttons
+
+Example:
+
+```typescript
+if (loading) return <LoadingSkeleton />;
+if (error) return <ErrorState error={error} onRetry={refetch} />;
+if (!data?.length) return <EmptyState message="No delegations found" />;
+
+return <DelegationList delegations={data} />;
+```
+
+### Step 9.4: Add Environment Variable Documentation
+
+**File:** `ayin/.env.example`
+
+```bash
+# Contracts
+NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS=0x...
+NEXT_PUBLIC_DELEGATION_POLICY_ADDRESS=0x...
+NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS=0x...
+NEXT_PUBLIC_AYIN_SMART_ACCOUNT_ADDRESS=0x...
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_KEY=eyJ...
+
+# Chain
+NEXT_PUBLIC_CHAIN_ID=84532
+NEXT_PUBLIC_RPC_URL=https://sepolia.base.org
+
+# Wallet
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=...
+
+# Agent
+AGENT_ID=1
+AGENT_OPERATOR=0x...
+```
+
+**File:** `ayin/README.md`
+
+Add setup instructions:
+
+```markdown
+## Getting Started
+
+### 1. Deploy Contracts
+```bash
+cd contracts
+PRIVATE_KEY=0x... BASESCAN_API_KEY=... forge script ...
+```
+
+### 2. Set Up Database
+- Create Supabase project
+- Run SQL migrations
+- Save credentials
+
+### 3. Configure Environment
+```bash
+cp .env.example .env.local
+# Edit with your values
+```
+
+### 4. Start Services
+```bash
+npm run dev         # Web app
+npm run start:agent # Agent worker
+```
+
+### 5. Test
+- Open http://localhost:3000
+- Connect wallet
+- Create delegation
+- Check BaseScan for transaction
+```
+
+**Checklist:**
+- [ ] Error boundaries added
+- [ ] Loading states implemented
+- [ ] Empty states shown
+- [ ] window.reload() replaced with state updates
+- [ ] .env.example created
+- [ ] README updated with setup guide
+
+---
+
+## FINAL CHECKLIST: MVP READY FOR TESTNET
+
+```
+✅ Phase 1: Smart Contracts Deployed
+  ✓ All 4 contracts deployed to Base Sepolia
+  ✓ Contract addresses updated in code
+  ✓ Contracts verified on BaseScan
+  ✓ 3 agents registered onchain
+
+✅ Phase 2: Database Configured
+  ✓ Supabase project created
+  ✓ 5 tables created with correct schema
+  ✓ Sample data inserted
+  ✓ Database connection tested
+
+✅ Phase 3: API Routes Updated
+  ✓ /api/agents returns real data
+  ✓ /api/delegations returns real data
+  ✓ /api/agent-actions created
+  ✓ /api/agents/{id} created
+
+✅ Phase 4: Activity Feed Connected
+  ✓ ActivityFeed fetches real data
+  ✓ Loading & empty states shown
+  ✓ Polling every 30 seconds
+
+✅ Phase 5: Agents Registered
+  ✓ 3 agents registered onchain
+  ✓ Verified on BaseScan
+
+✅ Phase 6: Delegation Flow Fixed
+  ✓ Market addresses configured
+  ✓ Agent operator fetching works
+  ✓ No more undefined errors
+
+✅ Phase 7: Agent Worker Running
+  ✓ Agent worker starts successfully
+  ✓ Polls every 30 seconds
+  ✓ Logs to database
+
+✅ Phase 8: End-to-End Tested
+  ✓ Can create delegation
+  ✓ Transaction on BaseScan
+  ✓ Can revoke delegation
+  ✓ All 3 services running
+
+✅ Phase 9: Polish Complete
+  ✓ Error boundaries added
+  ✓ Loading states implemented
+  ✓ Empty states shown
+  ✓ Documentation updated
+
+🚀 READY FOR TESTNET DEPLOYMENT!
+```
+
+---
+
+## Quick Reference: Commands Needed
+
+**Phase 1: Deploy**
+```bash
+forge script script/Deploy.s.sol:DeployScript --rpc-url https://sepolia.base.org --broadcast --verify -vvvv
+```
+
+**Phase 2: Database**
+```
+1. Create Supabase project at supabase.com
+2. Run SQL migrations
+3. Save credentials to .env.local
+```
+
+**Phase 3-6: Update Code**
+```
+Update files:
+- lib/contracts.ts (add addresses)
+- app/api/agents/route.ts (use database)
+- app/api/delegations/route.ts (use database)
+- components/ActivityFeed.tsx (fetch real data)
+```
+
+**Phase 7: Start Agent**
+```bash
+AGENT_ID=1 AGENT_OPERATOR=0x... RPC_URL=https://sepolia.base.org npm run start:agent
+```
+
+**Phase 8: Test**
+```bash
+npm run dev
+# Open http://localhost:3000
+# Connect wallet → Create delegation → Revoke
+# Check BaseScan
+```
+
+---
+
+## Success Criteria
+
+After completing all phases, you should be able to:
+
+1. ✅ Connect wallet on dashboard
+2. ✅ View 3 agents with real reputation data from database
+3. ✅ Create delegation with onchain confirmation
+4. ✅ See transaction on BaseScan within 30 seconds
+5. ✅ See agent action logged in activity feed
+6. ✅ See agent polling every 30 seconds in terminal
+7. ✅ Revoke delegation with onchain confirmation
+8. ✅ See revocation logged to database
+9. ✅ No errors in browser console or server logs
+
+If all 9 conditions are met → **MVP is production-ready for Base Sepolia!** 🎉

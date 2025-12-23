@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Cpu, Shield, Activity, Clock, Zap, X, Check, AlertCircle, Loader2, ExternalLink, Verified } from 'lucide-react';
-import { useAgents, useMarkets, useDelegations, useDelegationForm, useDelegationPolicy } from '@/lib/hooks';
+import { useAgents, useMarkets, useDelegations, useDelegationForm, useDelegationPolicy, useAgentActions } from '@/lib/hooks';
 import { useOnchainAgent, getAgentTypeLabel, getAgentTypeDescription, OnchainAgentType } from '@/lib/hooks/useOnchainAgent';
 import { WalletButton } from './components/WalletButton';
 import { AyinLogo } from './components/AyinLogo';
@@ -11,7 +11,7 @@ import { getExplorerLink, formatAddress } from '@/lib/utils';
 import { getContractAddress } from '@/lib/contracts';
 import { useChainId, useAccount } from 'wagmi';
 import { parseEther } from 'viem';
-import type { Agent } from '@/lib/types';
+import type { Agent, AgentAction } from '@/lib/types';
 
 // Delegation Modal Component
 function DelegationModal({
@@ -28,7 +28,8 @@ function DelegationModal({
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const { address } = useAccount();
-  const { createMandate, isContractDeployed, isPending: contractPending, isSuccess: contractSuccess, error: contractError } = useDelegationPolicy();
+  const { createMandate, isContractDeployed, isPending: contractPending, isSuccess: contractSuccess, error: contractError, hash } = useDelegationPolicy();
+  const { markets } = useMarkets();
 
   const submitting = apiSubmitting || contractPending;
 
@@ -42,23 +43,29 @@ function DelegationModal({
 
     try {
       setErrorMessage('');
-      
+
       // If contract is deployed, use onchain transaction
       if (isContractDeployed && agent.operator) {
         // Calculate expiry time (duration in seconds)
         const expiryTime = BigInt(Math.floor(Date.now() / 1000) + intent.duration * 24 * 60 * 60);
         // Convert allocation to wei (assuming USDC has 6 decimals, but we'll use 18 for simplicity)
         const maxTradeSize = parseEther(intent.allocation.toString());
-        // For now, use empty markets array - in production, map approvedMarkets to addresses
-        const allowedMarkets: `0x${string}`[] = [];
-        
+
+        // Map approved market names to their contract addresses
+        const allowedMarkets: `0x${string}`[] = (intent.approvedMarkets || [])
+          .map(marketName => {
+            const market = markets.find(m => m.title === marketName || m.category === marketName);
+            return market?.address as `0x${string}`;
+          })
+          .filter(addr => !!addr && addr !== '0x0000000000000000000000000000000000000000');
+
         await createMandate({
           agent: agent.operator as `0x${string}`,
           maxTradeSize,
           allowedMarkets,
           expiryTime,
         });
-        
+
         // Wait for transaction confirmation (handled by hook)
         // Status will update via contractSuccess
       } else {
@@ -95,16 +102,33 @@ function DelegationModal({
   if (!isOpen) return null;
 
   if (status === 'success') {
+    const chainId = useChainId();
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
         <div className="w-full max-w-md mx-4 bg-white border border-gray-200 rounded-2xl p-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-            <Check className="w-6 h-6 text-gray-900" />
+          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+            <Check className="w-6 h-6 text-emerald-600" />
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Delegation Active</h3>
           <p className="text-gray-500 mb-6">
             Your delegation to {agent.name} is now active.
           </p>
+
+          {isContractDeployed && hash && (
+            <div className="mb-6 p-3 bg-gray-50 rounded-lg border border-gray-100">
+              <p className="text-xs text-gray-400 mb-1">Transaction Hash</p>
+              <a
+                href={getExplorerLink('tx', hash, chainId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-mono text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1"
+              >
+                {hash.substring(0, 16)}...
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
+
           <button
             onClick={() => {
               setStatus('idle');
@@ -216,11 +240,10 @@ function DelegationModal({
                         profile === 'Conservative' ? 8 : profile === 'Moderate' ? 15 : 30;
                       updateIntent({ maxDrawdown: drawdown });
                     }}
-                    className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-colors border ${
-                      isSelected
-                        ? 'bg-gray-900 text-white border-gray-900'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                    }`}
+                    className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-colors border ${isSelected
+                      ? 'bg-gray-900 text-white border-gray-900'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                      }`}
                   >
                     {profile}
                   </button>
@@ -272,16 +295,16 @@ function AgentCard({
 }) {
   const chainId = useChainId();
   const agentRegistryAddress = getContractAddress('AgentRegistry', chainId);
-  
+
   // Try to fetch onchain data if agent has onchainId
   const onchainId = agent.onchainId || (agent.id && !isNaN(Number(agent.id)) ? Number(agent.id) : null);
   const { onchainAgent, isLoading: loadingOnchain, baseScanLink, isOnchain } = useOnchainAgent(onchainId);
-  
+
   // Determine agent type display
-  const agentType = onchainAgent 
+  const agentType = onchainAgent
     ? getAgentTypeLabel(onchainAgent.agentType)
     : agent.type;
-  
+
   const agentTypeDescription = onchainAgent
     ? getAgentTypeDescription(onchainAgent.agentType)
     : agent.strategy || 'Autonomous trading agent';
@@ -410,7 +433,15 @@ function FeaturedMarket() {
     );
   }
 
-  if (!market) return null;
+  if (!market) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center">
+        <Activity className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+        <p className="text-gray-500 text-sm font-medium">No featured markets available</p>
+        <p className="text-gray-400 text-xs mt-1">Check back later for new predictions</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-5">
@@ -421,7 +452,7 @@ function FeaturedMarket() {
         <span className="text-xs text-gray-400">Ends {market.endDate}</span>
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-4 leading-snug">{market.title}</h3>
-      
+
       {/* Probability Bar */}
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
@@ -445,37 +476,76 @@ function FeaturedMarket() {
 
 // Activity Feed Component
 function ActivityFeed() {
-  const activities = [
-    { id: 1, agent: 'Sentinel Alpha', action: 'Opened position', market: 'ETH > $4000', time: '2m ago', type: 'buy' },
-    { id: 2, agent: 'Risk Arbiter', action: 'Closed position', market: 'BTC Halving Impact', time: '8m ago', type: 'sell' },
-    { id: 3, agent: 'Sentinel Alpha', action: 'Adjusted hedge', market: 'L2 Activity Surge', time: '15m ago', type: 'adjust' },
-    { id: 4, agent: 'Risk Arbiter', action: 'Stop-loss triggered', market: 'USDC Depeg Risk', time: '32m ago', type: 'stop' },
-  ];
+  const { actions, loading } = useAgentActions();
+
+  if (loading) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden p-5 space-y-4">
+        <div className="h-4 bg-gray-100 rounded w-1/4 mb-2 animate-pulse" />
+        {[1, 2, 3].map(i => (
+          <div key={i} className="flex gap-3 animate-pulse">
+            <div className="w-8 h-8 bg-gray-100 rounded-lg" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 bg-gray-100 rounded w-3/4" />
+              <div className="h-2 bg-gray-50 rounded w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-100">
+      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">Recent Activity</h3>
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+          <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+          Live
+        </div>
       </div>
       <div className="divide-y divide-gray-100">
-        {activities.map((activity) => (
-          <div key={activity.id} className="px-5 py-3.5 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-              {activity.type === 'buy' && <Zap className="w-4 h-4 text-gray-500" />}
-              {activity.type === 'sell' && <Activity className="w-4 h-4 text-gray-500" />}
-              {activity.type === 'adjust' && <Shield className="w-4 h-4 text-gray-500" />}
-              {activity.type === 'stop' && <AlertCircle className="w-4 h-4 text-gray-500" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-900 truncate">
-                <span className="font-medium">{activity.agent}</span>
-                <span className="text-gray-500"> · {activity.action}</span>
-              </p>
-              <p className="text-xs text-gray-400 truncate">{activity.market}</p>
-            </div>
-            <span className="text-xs text-gray-400 flex-shrink-0">{activity.time}</span>
+        {actions.length === 0 ? (
+          <div className="px-5 py-10 text-center">
+            <Activity className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+            <p className="text-gray-400 text-xs">No recent activity detected</p>
           </div>
-        ))}
+        ) : (
+          actions.map((activity: AgentAction) => {
+            const timeStr = new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return (
+              <div key={activity.id} className="px-5 py-3.5 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                  {activity.type === 'buy' && <Zap className="w-4 h-4 text-emerald-500" />}
+                  {activity.type === 'sell' && <Activity className="w-4 h-4 text-orange-500" />}
+                  {activity.type === 'adjust' && <Shield className="w-4 h-4 text-blue-500" />}
+                  {activity.type === 'stop' && <AlertCircle className="w-4 h-4 text-red-500" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-900 truncate">
+                    <span className="font-semibold text-gray-900">Agent #{activity.agentId}</span>
+                    <span className="text-gray-400 mx-1">·</span>
+                    <span className="text-gray-600">{activity.action}</span>
+                  </p>
+                  <p className="text-xs text-gray-400 truncate mt-0.5">{activity.market}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className="text-[10px] font-medium text-gray-400 block">{timeStr}</span>
+                  {activity.txHash && (
+                    <a
+                      href={`https://sepolia.basescan.org/tx/${activity.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-blue-500 hover:text-blue-600 font-mono mt-0.5 block"
+                    >
+                      {activity.txHash.substring(0, 6)}...
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -523,13 +593,24 @@ function ActiveDelegation() {
       // Get agent from delegation - we need the agent's operator address
       // For now, try to use contract if deployed and agent has operator
       const agentId = activeDelegation.agentId;
-      
+
       // If contract is deployed, try to revoke onchain
-      // Note: We'd need to fetch the agent's operator address from the API
-      // For demo, fallback to API revocation
       if (isContractDeployed) {
-        // In production, fetch agent.operator from API
-        // For now, use API fallback
+        // Fetch agent data to get operator
+        try {
+          const res = await fetch(`/api/agents/${agentId}`);
+          const { data: agent } = await res.json();
+
+          if (agent?.operator) {
+            await revokeAgent(agent.operator as `0x${string}`);
+            // Success will be handled by useEffect [revokeSuccess]
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to fetch agent operator', e);
+        }
+
+        // Fallback or error if no operator found
         const result = await cancelDelegation(activeDelegation.id);
         if (!result) {
           setRevokeErrorMsg('Failed to revoke delegation');
@@ -548,7 +629,15 @@ function ActiveDelegation() {
     }
   };
 
-  if (!activeDelegation) return null;
+  if (!activeDelegation) {
+    return (
+      <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-6 text-center">
+        <Shield className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+        <p className="text-gray-500 text-sm">No active delegations</p>
+        <p className="text-gray-400 text-[10px] mt-1">Delegate to an agent to start autonomous trading</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5">
@@ -567,7 +656,7 @@ function ActiveDelegation() {
           {activeDelegation.expiresAt ? `Expires ${activeDelegation.expiresAt}` : 'No expiry'}
         </div>
       </div>
-      
+
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div>
           <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Allocated</p>
@@ -671,6 +760,14 @@ export default function MiniApp() {
                 </div>
               ))}
             </div>
+          ) : displayAgents.length === 0 ? (
+            <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-10 text-center">
+              <Cpu className="w-10 h-10 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-gray-900 font-semibold mb-1">No Agents Available</h3>
+              <p className="text-gray-500 text-sm max-w-xs mx-auto">
+                There are currently no active trading agents on the platform. Please check back later.
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
               {displayAgents.map((agent) => (
@@ -686,10 +783,18 @@ export default function MiniApp() {
 
       {/* Footer */}
       <footer className="border-t border-gray-100 mt-12">
-        <div className="max-w-2xl mx-auto px-4 py-6 text-center">
-          <p className="text-xs text-gray-400">
-            Built on Base · ERC-8004 Compliant
-          </p>
+        <div className="max-w-2xl mx-auto px-4 py-8 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <AyinLogo size={24} />
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">
+                Built as a <span className="text-gray-900 font-semibold">Base Primitive</span> · ERC-8004 Compliant
+              </p>
+              <p className="text-[10px] text-gray-400">
+                Composable with other Base dApps · Embeddable mini app
+              </p>
+            </div>
+          </div>
         </div>
       </footer>
 
