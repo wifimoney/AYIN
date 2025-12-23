@@ -724,7 +724,7 @@ export default function MiniApp() {
             <AyinLogo size={32} />
             <div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">AYIN</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Agent delegation on Base</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Agent delegation on Base · Composable & Verifiable</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -788,10 +788,10 @@ export default function MiniApp() {
             <AyinLogo size={24} />
             <div className="space-y-1">
               <p className="text-xs font-medium text-gray-500">
-                Built as a <span className="text-gray-900 font-semibold">Base Primitive</span> · ERC-8004 Compliant
+                Built as a <span className="text-gray-900 dark:text-gray-300 font-semibold">Base Primitive</span> · ERC-8004 Compliant
               </p>
-              <p className="text-[10px] text-gray-400">
-                Composable with other Base dApps · Embeddable mini app
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                Fully composable with other Base dApps · Embeddable mini app
               </p>
             </div>
           </div>

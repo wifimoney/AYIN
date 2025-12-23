@@ -1496,7 +1496,7 @@ main().catch((error) => {
             border: 1px solid #334155;
             border-radius: 8px;
             padding: 20px;
-            margin-bottom: 40px;
+            margin-bottom: 40px;a
         }
 
         .chart-placeholder {
