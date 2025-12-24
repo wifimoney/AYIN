@@ -8,39 +8,33 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
 import { ThemeProvider, useTheme } from "next-themes";
 
+
 // Determine chain based on environment variable (default to Base Sepolia for demo)
-const chainId = process.env.NEXT_PUBLIC_CHAIN_ID 
+const chainId = process.env.NEXT_PUBLIC_CHAIN_ID
   ? parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10)
   : 84532; // Default to Base Sepolia for demo
 
 const selectedChain = chainId === 84532 ? baseSepolia : base;
-
-// RPC URL configuration - use environment variable or default to public Base RPC
-const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 
-  (chainId === 84532 
-    ? 'https://sepolia.base.org' 
+const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ||
+  (chainId === 84532
+    ? 'https://sepolia.base.org'
     : 'https://mainnet.base.org');
+
+// Add WalletConnect only if project ID is provided
+const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
 const connectors = [
   injected(),
   metaMask(),
+  ...(walletConnectProjectId ? [walletConnect({ projectId: walletConnectProjectId })] : [])
 ];
-
-// Add WalletConnect only if project ID is provided
-const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
-if (walletConnectProjectId) {
-  connectors.push(
-    walletConnect({
-      projectId: walletConnectProjectId,
-    })
-  );
-}
 
 const config = createConfig({
   chains: [selectedChain],
   connectors,
   transports: {
-    [selectedChain.id]: http(rpcUrl),
+    [base.id]: http(),
+    [baseSepolia.id]: http(),
   },
 });
 
@@ -49,7 +43,7 @@ const queryClient = new QueryClient();
 // Component to sync OnchainKit with next-themes
 function OnchainKitThemeSync({ children }: { children: ReactNode }) {
   const { theme } = useTheme();
-  
+
   // Determine the mode: 'light', 'dark', or 'auto'
   const mode = theme === 'system' ? 'auto' : (theme === 'dark' ? 'dark' : 'light');
 

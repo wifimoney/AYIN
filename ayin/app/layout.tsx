@@ -11,6 +11,22 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'AYIN | Agent Delegation on Base',
   description: 'Delegate trading authority to autonomous AI agents on Base.',
+  other: {
+    'fc:frame': JSON.stringify({
+      version: "next",
+      imageUrl: "https://ayin.app/icon.png",
+      button: {
+        title: "Launch Ayin",
+        action: {
+          type: "launch_frame",
+          name: "Ayin",
+          url: "https://ayin.app",
+          splashImageUrl: "https://ayin.app/splash.png",
+          splashBackgroundColor: "#000000"
+        }
+      }
+    })
+  }
 };
 
 export default function RootLayout({
@@ -27,3 +43,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+

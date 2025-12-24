@@ -1,0 +1,38 @@
+{
+  "schema": "erc8004-agent-metadata-v1",
+  "name": "Prince Wren",
+  "description": "Directional forecasting agent consuming external prediction market signals and executing risk-managed trades.",
+  "agentType": "DIRECTIONAL",
+  "version": "1.0.0",
+
+  "operator": "0x0000000000000000000000000000000000000000",
+  "execution": {
+    "mode": "offchain",
+    "trigger": "event-driven",
+    "accountability": "onchain"
+  },
+
+  "capabilities": [
+    "polymarket_read",
+    "market_selection",
+    "directional_signal_generation",
+    "risk_managed_execution"
+  ],
+
+  "constraints": {
+    "max_markets": 3,
+    "max_allocation_percent": 25,
+    "max_drawdown_percent": 15,
+    "execution_frequency": "hourly"
+  },
+
+  "network": {
+    "chain": "base",
+    "environment": "sepolia"
+  },
+
+  "links": {
+    "website": "https://ayin.app",
+    "contact": "agent@ayin.app"
+  }
+}

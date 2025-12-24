@@ -451,6 +451,15 @@ function FeaturedMarket() {
         </span>
         <span className="text-xs text-gray-400">Ends {market.endDate}</span>
       </div>
+
+      {/* x402 Data Badge */}
+      {(market.x402Cost || market.costWei) && (
+        <div className="mb-3 px-2 py-1 bg-yellow-50 border border-yellow-200 rounded text-[10px] font-semibold text-yellow-700 w-fit flex items-center gap-1.5">
+          <Zap className="w-3 h-3 text-yellow-600" />
+          x402 Gated · Cost: {market.x402Cost || market.costWei} Wei
+        </div>
+      )}
+
       <h3 className="text-lg font-semibold text-gray-900 mb-4 leading-snug">{market.title}</h3>
 
       {/* Probability Bar */}

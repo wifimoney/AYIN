@@ -29,10 +29,11 @@ export { mockDelegations };
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const delegation = mockDelegations.find((d) => d.id === params.id);
+    const { id } = await params;
+    const delegation = mockDelegations.find((d) => d.id === id);
 
     if (!delegation) {
       const response: ApiResponse<Delegation> = {
@@ -59,10 +60,11 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const delegationIndex = mockDelegations.findIndex((d) => d.id === params.id);
+    const { id } = await params;
+    const delegationIndex = mockDelegations.findIndex((d) => d.id === id);
 
     if (delegationIndex === -1) {
       const response: ApiResponse<Delegation> = {
@@ -73,7 +75,7 @@ export async function DELETE(
     }
 
     const delegation = mockDelegations[delegationIndex];
-    
+
     // Update status to expired (simulating revocation)
     // In production, this would check onchain status via DelegationPolicy contract
     delegation.status = 'expired';

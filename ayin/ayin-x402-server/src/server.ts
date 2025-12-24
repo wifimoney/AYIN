@@ -9,6 +9,8 @@ export interface PaymentProvider {
     verifyPayment(proof: PaymentProof): Promise<boolean>;
 }
 
+
+
 /**
  * x402 Server: Gated data endpoint
  */
@@ -44,7 +46,7 @@ export class X402Server {
         this.app.get('/market/:marketId/data', this.handleMarketData.bind(this));
 
         // Protected endpoint: Strategy signals (premium)
-        this.app.get('/signals/premium', this.handleSignals.bind(this));
+        this.app.post('/signals/premium', this.handleSignals.bind(this));
 
         // Public endpoint: Usage logs
         this.app.get('/admin/logs', this.handleLogsEndpoint.bind(this));
@@ -152,6 +154,13 @@ export class X402Server {
                 },
             ];
 
+            const challenge = this.validateChallenge(paymentProof, '/signals/premium');
+
+            if (!challenge) {
+                res.status(403).json({ error: 'Invalid or expired payment challenge' });
+                return;
+            }
+
             this.logUsage({
                 agentId: paymentProof.agentId,
                 endpoint: '/signals/premium',
@@ -166,6 +175,20 @@ export class X402Server {
             this.logger.error('Signals endpoint error', error as Error);
             res.status(500).json({ error: 'Internal server error' });
         }
+    }
+
+    private validateChallenge(
+        proof: PaymentProof,
+        endpoint: string
+    ): PaymentChallenge | null {
+        const challenge = this.challengeNonces.get(proof.nonce);
+
+        if (!challenge) return null;
+        if (challenge.expiresAt < Math.floor(Date.now() / 1000)) return null;
+        if (challenge.amount !== proof.amount) return null;
+
+        // Optional: enforce endpoint binding
+        return challenge;
     }
 
     /**

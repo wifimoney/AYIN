@@ -27,6 +27,7 @@ export interface PaymentProof {
     agentId: number;
     nonce: string;
     timestamp: number;
+    chainId?: number;
 }
 
 // ============================================================================

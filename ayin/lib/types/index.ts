@@ -48,6 +48,8 @@ export interface Market {
   endDate: string;
   category: string;
   address?: string; // Contract address for the market
+  costWei?: number; // Live cost to fetch data
+  x402Cost?: number; // Legacy or alternative cost field
 }
 
 /**

@@ -1,17 +1,18 @@
-import { X402Client } from '../x402Client';
-import { PaymentMethod } from '../x402Types';
-import { createLogger } from '../logger';
+import { X402Client } from '../payments/x402Client';
+import { PaymentMethod } from '../payments/x402Types';
+import { logger } from '../observability/logger';
+import { Executor } from '../execution/executor';
 
 describe('X402Client', () => {
     let client: X402Client;
-    const logger = createLogger('debug');
+    const mockExecutor = {} as Executor;
 
     beforeEach(() => {
         client = new X402Client('http://localhost:3000', {
             method: PaymentMethod.MOCK,
             mockBalance: BigInt("10000000000000000000"),
             agentId: 1,
-        }, logger);
+        }, mockExecutor, logger);
     });
 
     // Since we don't have a real server, we'll mock the internal makeRequest
@@ -117,6 +118,7 @@ describe('X402Client', () => {
                 mockBalance: BigInt(1), // Very low balance
                 agentId: 1,
             },
+            mockExecutor,
             logger
         );
 

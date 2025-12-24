@@ -1,0 +1,12 @@
+{
+  "name": "Ayin",
+  "description": "Agentic prediction markets on Base",
+  "icon": "https://ayin.app/icon.png",
+  "homeUrl": "https://ayin.app",
+  "permissions": [
+    "wallet",
+    "ethereum"
+  ],
+  "entrypoint": "/",
+  "version": "1.0.0"
+}

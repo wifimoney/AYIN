@@ -7,7 +7,8 @@ import {
     PaymentConfig,
     DataUsageLog,
 } from './x402Types';
-import { Logger } from './types';
+import { Logger } from '../types';
+import { Executor } from '../execution/executor';
 
 /**
  * x402 Client: Handles payment-gated data requests
@@ -16,16 +17,19 @@ export class X402Client {
     private baseUrl: string;
     private config: PaymentConfig;
     private logger: Logger;
+    private executor: Executor;
     private paymentCache: Map<string, PaymentProof> = new Map();
     private usageLogs: DataUsageLog[] = [];
 
     constructor(
         baseUrl: string,
         config: PaymentConfig,
+        executor: Executor,
         logger: Logger
     ) {
         this.baseUrl = baseUrl;
         this.config = config;
+        this.executor = executor;
         this.logger = logger;
     }
 
@@ -216,24 +220,43 @@ export class X402Client {
      * Create blockchain proof (real payment)
      * For MVP: simulate blockchain call
      */
+
     private async createBlockchainProof(
         challenge: PaymentChallenge
     ): Promise<PaymentProof> {
-        // TODO: In production, this would:
+        this.logger.info('Paying x402 challenge onchain', {
+            amount: challenge.amount.toString(),
+            to: challenge.paymentAddress,
+        });
+
+        // 🔑 PAY VIA SMART ACCOUNT
+        //  // TODO: In production, this would:
         // 1. Create transaction sending payment to challenge.paymentAddress
         // 2. Sign with this.config.privateKey
         // 3. Submit to chain
         // 4. Wait for confirmation
         // 5. Return proof with real txHash
+        /**
+         * Use cached payment proof (if available)
+         */
 
-        this.logger.warn('Blockchain payment not yet implemented');
+        const { transactionHash, blockNumber } = await this.executor.payX402(
+            challenge.paymentAddress,
+            challenge.amount
+        );
 
-        throw new Error('Blockchain payment method not implemented');
+        return {
+            agentId: this.config.agentId!,
+            amount: challenge.amount,
+            paymentAddress: challenge.paymentAddress,
+            transactionHash,
+            blockNumber,
+            nonce: challenge.nonce,
+            timestamp: Math.floor(Date.now() / 1000),
+            chainId: challenge.minimumChainId,
+        };
     }
 
-    /**
-     * Use cached payment proof (if available)
-     */
     private createCachedProof(challenge: PaymentChallenge): PaymentProof {
         const cached = this.paymentCache.get(challenge.nonce);
 

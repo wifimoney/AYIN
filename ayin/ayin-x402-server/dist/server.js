@@ -34,7 +34,7 @@ class X402Server {
         // Protected endpoint: Market data
         this.app.get('/market/:marketId/data', this.handleMarketData.bind(this));
         // Protected endpoint: Strategy signals (premium)
-        this.app.get('/signals/premium', this.handleSignals.bind(this));
+        this.app.post('/signals/premium', this.handleSignals.bind(this));
         // Public endpoint: Usage logs
         this.app.get('/admin/logs', this.handleLogsEndpoint.bind(this));
     }
@@ -123,6 +123,11 @@ class X402Server {
                     model: 'v1.2',
                 },
             ];
+            const challenge = this.validateChallenge(paymentProof, '/signals/premium');
+            if (!challenge) {
+                res.status(403).json({ error: 'Invalid or expired payment challenge' });
+                return;
+            }
             this.logUsage({
                 agentId: paymentProof.agentId,
                 endpoint: '/signals/premium',
@@ -137,6 +142,17 @@ class X402Server {
             this.logger.error('Signals endpoint error', error);
             res.status(500).json({ error: 'Internal server error' });
         }
+    }
+    validateChallenge(proof, endpoint) {
+        const challenge = this.challengeNonces.get(proof.nonce);
+        if (!challenge)
+            return null;
+        if (challenge.expiresAt < Math.floor(Date.now() / 1000))
+            return null;
+        if (challenge.amount !== proof.amount)
+            return null;
+        // Optional: enforce endpoint binding
+        return challenge;
     }
     /**
      * Public endpoint: Usage logs (admin only)

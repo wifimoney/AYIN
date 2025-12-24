@@ -1,30 +1,16 @@
-import { loadConfig, validateConfig } from './config';
-import { createLogger } from './logger';
-import { Agent } from './agent';
+import { runAgent } from './runtime/agent';
+import { config } from './config/config';
 
-async function main() {
-    try {
-        // Load and validate config
-        const config = loadConfig();
-        validateConfig(config);
-
-        // Create logger
-        const logger = createLogger(
-            (process.env.LOG_LEVEL as any) || 'info'
-        );
-
-        logger.info('Ayin Agent starting', {
-            agentId: config.agentId,
-            network: config.chainId,
-        });
-
-        // Create and run agent
-        const agent = new Agent(config, logger);
-        await agent.run();
-    } catch (error) {
-        console.error('Fatal error:', error);
-        process.exit(1);
+async function loop() {
+    console.log("Starting Agent Loop...");
+    while (true) {
+        try {
+            await runAgent();
+        } catch (err) {
+            console.error('[AGENT ERROR]', err);
+        }
+        await new Promise(r => setTimeout(r, config.pollIntervalMs));
     }
 }
 
-main();
+loop();

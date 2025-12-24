@@ -162,23 +162,23 @@ export class ReputationIndexer {
         const trade = trades.find((t) => t.marketId === event.marketId);
 
         if (trade) {
-            trade.outcome = event.pnl >= 0n ? 'YES' : 'NO'; // Simplified
+            trade.outcome = event.pnl >= BigInt(0) ? 'YES' : 'NO'; // Simplified
             trade.exitTime = event.timestamp;
             trade.pnl = event.pnl;
 
             // Calculate result
-            if (event.pnl > 0n) {
+            if (event.pnl > BigInt(0)) {
                 trade.result = 'WIN';
-            } else if (event.pnl < 0n) {
+            } else if (event.pnl < BigInt(0)) {
                 trade.result = 'LOSS';
             } else {
                 trade.result = 'BREAK';
             }
 
             // Calculate return %
-            if (trade.entrySize > 0n) {
+            if (trade.entrySize > BigInt(0)) {
                 trade.roiPercent =
-                    Number((event.pnl * 100n) / trade.entrySize);
+                    Number((event.pnl * BigInt(100)) / trade.entrySize);
                 trade.returnPercent =
                     Number(event.pnl) / Number(trade.entrySize);
             }
