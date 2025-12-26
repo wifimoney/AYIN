@@ -12,6 +12,25 @@ import { getContractAddress } from '@/lib/contracts';
 import { useChainId, useAccount } from 'wagmi';
 import { parseEther } from 'viem';
 import type { Agent, AgentAction } from '@/lib/types';
+import { UserBadge } from './components/auth/user-badge';
+
+export default function HomePage() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold">Ayin</h1>
+        <UserBadge />
+      </div>
+      
+      <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6">
+        <h2 className="font-semibold mb-2">✅ Auth Working!</h2>
+        <p className="text-sm text-gray-400">
+          If you see your FID/username above, Farcaster auth is working
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // Delegation Modal Component
 function DelegationModal({
