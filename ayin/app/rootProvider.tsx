@@ -8,7 +8,6 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
 import { ThemeProvider, useTheme } from "next-themes";
 
-
 // Determine chain based on environment variable (default to Base Sepolia for demo)
 const chainId = process.env.NEXT_PUBLIC_CHAIN_ID
   ? parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10)
@@ -56,6 +55,9 @@ function OnchainKitThemeSync({ children }: { children: ReactNode }) {
           mode: mode as 'auto' | 'light' | 'dark',
           theme: 'base', // Base brand colors theme
         },
+        wallet: {
+          display: 'modal',
+        },
       }}
     >
       {children}
@@ -66,12 +68,9 @@ function OnchainKitThemeSync({ children }: { children: ReactNode }) {
 export function RootProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Initialize Farcaster Mini App SDK
-    // This will only work when running inside a Farcaster client
-    // It's safe to call even outside Farcaster (e.g., in development)
     try {
       sdk.actions.ready();
     } catch (error) {
-      // Silently fail if SDK is not available (e.g., running outside Farcaster)
       console.debug('Farcaster SDK not available:', error);
     }
   }, []);

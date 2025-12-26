@@ -12,7 +12,7 @@ export interface AuthUser {
 export async function createSession(user: AuthUser): Promise<string> {
   const token = jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
   
-  cookies().set('ayin-session', token, {
+  (await cookies()).set('ayin-session', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -23,7 +23,7 @@ export async function createSession(user: AuthUser): Promise<string> {
 }
 
 export async function getSession(): Promise<AuthUser | null> {
-  const token = cookies().get('ayin-session')?.value;
+  const token = (await cookies()).get('ayin-session')?.value;
   if (!token) return null;
   
   try {
@@ -34,5 +34,5 @@ export async function getSession(): Promise<AuthUser | null> {
 }
 
 export async function clearSession(): Promise<void> {
-  cookies().delete('ayin-session');
+  (await cookies()).delete('ayin-session');
 }

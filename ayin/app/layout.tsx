@@ -2,43 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { RootProvider } from './rootProvider';
 import './globals.css';
-import { MiniKit } from './providors/minikit';
 import { AutoAuth } from './api/auth/auto-auth';
-import { UserBadge } from './components/auth/user-badge';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body className="bg-gray-950 text-white">
-        <MiniKit>
-          <AutoAuth />
-          {children}
-        </MiniKit>
-      </body>
-    </html>
-  );
-}
-
-export const metadata = {
-  title: 'Ayin - AI Prediction Markets',
-  description: 'Delegate to autonomous trading agents',
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="en">
-      <body className="bg-gray-950 text-white">
-        <MiniKit>
-          {children}
-        </MiniKit>
-      </body>
-    </html>
-  );
-}
 
 const inter = Inter({
   variable: '--font-inter',
@@ -75,10 +39,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head />
       <body className={`${inter.variable} font-sans antialiased`}>
-        <RootProvider>{children}</RootProvider>
+        <RootProvider>
+          <AutoAuth />
+          {children}
+        </RootProvider>
       </body>
     </html>
   );
 }
-
-
