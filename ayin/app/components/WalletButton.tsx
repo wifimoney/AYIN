@@ -1,6 +1,6 @@
 'use client';
 
-import { useMiniKit } from '@coinbase/onchainkit/minikit';
+import { useAuth } from '@/lib/hooks';
 import { useAccount } from 'wagmi';
 import {
   ConnectWallet,
@@ -18,16 +18,16 @@ import {
 } from '@coinbase/onchainkit/identity';
 
 export function WalletButton() {
-  const { context } = useMiniKit();
+  const { user } = useAuth();
   const { address } = useAccount();
 
   return (
     <div className="flex items-center gap-3">
       {/* Show Farcaster identity if available */}
-      {context?.user && (
+      {user && (
         <div className="text-sm text-right mr-2">
           <p className="font-medium">
-            {context.user.username ? `@${context.user.username}` : `FID: ${context.user.fid}`}
+            {user.username ? `@${user.username}` : `FID: ${user.fid}`}
           </p>
         </div>
       )}

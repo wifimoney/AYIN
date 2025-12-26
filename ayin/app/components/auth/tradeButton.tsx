@@ -4,6 +4,7 @@ import { baseSepolia } from 'wagmi/chains';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { useState, useEffect } from 'react';
 import { CONTRACTS, ABIS } from '@/lib/contracts';
+import { getPaymasterUrl } from '@/lib/config';
 
 export function TradeButton({
     marketId,
@@ -63,7 +64,7 @@ export function TradeButton({
                 value: amount,
             }]}
             capabilities={{
-                paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL! },
+                paymasterService: { url: getPaymasterUrl() },
             }}
             onStatus={(status) => {
                 if (status.statusName === 'success') {

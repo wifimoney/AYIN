@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Delegation, DelegationIntent, ApiResponse } from '@/lib/types';
+import { getSession } from '@/lib/auth';
 
 // In-memory storage for delegations (mock)
 // In production, this would be stored in a database
@@ -25,6 +26,11 @@ let mockDelegations: Delegation[] = [
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
@@ -52,6 +58,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'UNAUTHORIZED' }, { status: 401 });
+    }
+
     const intent: DelegationIntent = await request.json();
 
     // Validate required fields

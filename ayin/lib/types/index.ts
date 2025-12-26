@@ -34,6 +34,7 @@ export interface Agent {
   operator?: string; // Address that controls this agent
   registeredAt?: number; // Timestamp of onchain registration
   verifiedOnchain?: boolean; // Whether agent exists in AgentRegistry
+  image?: string; // Optional image URL for the agent avatar
 }
 
 /**

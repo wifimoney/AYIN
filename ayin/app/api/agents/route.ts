@@ -18,18 +18,20 @@ const AGENTS: Agent[] = [
     strategy: 'Trend Follower',
     verifiedOnchain: true,
     operator: '0xdA31A1967F0007fA623549132484db7592d3B413',
+    image: '/assets/Gemini_Generated_Image_grb35grb35grb35g.png',
   },
   {
     id: '2',
     name: 'Oracle Eye',
-    type: 'Arbitrage',
-    status: 'Paused',
-    reputation: 92,
-    winRate: '65%',
+    type: 'Market Maker',
+    status: 'Active',
+    reputation: 95,
+    winRate: '82%',
     drawdown: '0%',
     aum: '0',
     risk: 'Medium',
-    strategy: 'Cross-market Arb',
+    strategy: 'Delta-Neutral LP',
+    image: '/assets/unnamed-1.jpg',
   },
   {
     id: '3',
@@ -41,7 +43,8 @@ const AGENTS: Agent[] = [
     drawdown: '0%',
     aum: '0',
     risk: 'High',
-    strategy: 'Volatility Mean Rev'
+    strategy: 'Volatility Mean Rev',
+    image: '/assets/unnamed.jpg',
   },
 ];
 

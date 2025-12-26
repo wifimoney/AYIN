@@ -5,6 +5,7 @@ import { encodeFunctionData } from 'viem';
 import { CONTRACTS, ABIS } from '@/lib/contracts';
 import { sdk } from '@farcaster/miniapp-sdk';
 import { useState, useEffect } from 'react';
+import { getPaymasterUrl } from '@/lib/config';
 
 export function DelegateButton({
     agentAddress,
@@ -69,7 +70,7 @@ export function DelegateButton({
             chainId={baseSepolia.id}
             calls={calls}
             capabilities={{
-                paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL! },
+                paymasterService: { url: getPaymasterUrl() },
             }}
             onStatus={(status) => {
                 if (status.statusName === 'success') {

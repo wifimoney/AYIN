@@ -11,23 +11,55 @@ export function AutoAuth() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const context = await sdk.context;
-                // Check if context and user exist (context might be null if not in frame)
-                if (context?.user && !sessionCreated) {
-                    fetch('/api/auth/session', {
+                // Check if already authenticated
+                const existingToken = localStorage.getItem('session_token');
+                if (existingToken) {
+                    setSessionCreated(true);
+                    return;
+                }
+
+                // Try Quick Auth for secure authentication
+                try {
+                    const { token } = await sdk.quickAuth.getToken();
+
+                    const response = await fetch('/api/auth/session', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify({
-                            fid: context.user.fid,
-                            username: context.user.username,
-                            walletAddress: address,
+                            token,
+                            walletAddress: address
                         }),
-                    })
-                        .then(() => setSessionCreated(true))
-                        .catch(console.error);
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.token) {
+                        localStorage.setItem('session_token', data.token);
+                        setSessionCreated(true);
+                    }
+                } catch (quickAuthError) {
+                    // Fallback: Try context-based auth (less secure, for backward compatibility)
+                    console.warn('Quick Auth unavailable, falling back to context:', quickAuthError);
+
+                    const context = await sdk.context;
+                    if (context?.user && !sessionCreated) {
+                        await fetch('/api/auth/session', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fid: context.user.fid,
+                                username: context.user.username,
+                                walletAddress: address,
+                            }),
+                        });
+                        setSessionCreated(true);
+                    }
                 }
             } catch (err) {
-                console.error('Error fetching context', err);
+                console.error('Auto-auth error:', err);
             }
         };
 

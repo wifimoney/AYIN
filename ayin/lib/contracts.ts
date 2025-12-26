@@ -70,14 +70,15 @@ export const CONTRACTS = {
 export const ABIS = {
   DELEGATION: [
     {
-      name: 'createDelegation',
+      name: 'createMandate',
       type: 'function',
       inputs: [
-        { name: 'agentAddress', type: 'address' },
-        { name: 'budget', type: 'uint256' },
-        { name: 'expiresAt', type: 'uint256' },
+        { name: '_agent', type: 'address' },
+        { name: '_maxTradeSize', type: 'uint256' },
+        { name: '_allowedMarkets', type: 'address[]' },
+        { name: '_expiryTime', type: 'uint256' },
       ],
-      outputs: [{ name: 'delegationId', type: 'uint256' }],
+      outputs: [{ name: 'mandateId', type: 'uint256' }],
       stateMutability: 'nonpayable',
     },
   ],

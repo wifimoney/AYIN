@@ -8,6 +8,7 @@ import { injected, metaMask, walletConnect } from "wagmi/connectors";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
 import { ThemeProvider, useTheme } from "next-themes";
 import { farcasterFrame } from "@farcaster/miniapp-wagmi-connector";
+import { DEFAULT_PAYMASTER_URL } from "@/lib/config";
 
 // Determine chain based on environment variable (default to Base Sepolia for demo)
 const chainId = process.env.NEXT_PUBLIC_CHAIN_ID
@@ -15,6 +16,7 @@ const chainId = process.env.NEXT_PUBLIC_CHAIN_ID
   : 84532; // Default to Base Sepolia for demo
 
 const selectedChain = chainId === 84532 ? baseSepolia : base;
+
 const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ||
   (chainId === 84532
     ? 'https://sepolia.base.org'
@@ -31,7 +33,7 @@ const connectors = [
 ];
 
 const config = createConfig({
-  chains: [selectedChain],
+  chains: [base, baseSepolia],
   connectors,
   transports: {
     [base.id]: http(),
@@ -57,12 +59,12 @@ function OnchainKitThemeSync({ children }: { children: ReactNode }) {
       config={{
         appearance: {
           mode: mode as 'auto' | 'light' | 'dark',
-          theme: 'base', // Base brand colors theme
+          theme: 'base', // Using base theme + CSS overrides for Nova aesthetic
         },
         wallet: {
           display: 'modal',
         },
-        paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL,
+        paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL || DEFAULT_PAYMASTER_URL,
       }}
     >
       {children}

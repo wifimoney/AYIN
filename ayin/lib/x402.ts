@@ -106,5 +106,5 @@ export class X402Service {
 }
 
 // Singleton instance for use in API routes
-const x402Url = process.env.NEXT_PUBLIC_X402_URL || 'http://localhost:3000';
+const x402Url = process.env.NEXT_PUBLIC_X402_URL || 'http://localhost:3005';
 export const x402Service = new X402Service(x402Url);

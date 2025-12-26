@@ -19,4 +19,5 @@ export {
 } from './useOnchainAgent';
 export { useDelegationPolicy, type CreateMandateParams } from './useDelegationPolicy';
 export { useAgentActions } from './useAgentActions';
+export { useAuth, type AuthUser } from './useAuth';
 

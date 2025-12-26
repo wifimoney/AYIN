@@ -33,6 +33,7 @@ const config: Config = {
           DEFAULT: "var(--muted)",
           foreground: "var(--muted-foreground)",
         },
+        label: "#5C7FFF",
         accent: {
           DEFAULT: "var(--accent)",
           foreground: "var(--accent-foreground)",
@@ -51,6 +52,10 @@ const config: Config = {
           "4": "var(--chart-4)",
           "5": "var(--chart-5)",
         },
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          foreground: "hsl(var(--foreground))",
+        },
         sidebar: {
           DEFAULT: "var(--sidebar)",
           foreground: "var(--sidebar-foreground)",
@@ -61,6 +66,11 @@ const config: Config = {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
+      },
+      boxShadow: {
+        'nova': '0 0 12px rgba(255, 255, 255, 0.05)',
+        'glow-base': '0 0 20px rgba(0, 82, 255, 0.4)',
+        'glow-cyan': '0 0 25px rgba(0, 194, 255, 0.3)',
       },
       borderRadius: {
         lg: "var(--radius)",

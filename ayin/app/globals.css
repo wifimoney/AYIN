@@ -9,6 +9,8 @@
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
+    --surface: 0 0% 98%;
+
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
 
@@ -38,33 +40,42 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --surface: 240 6% 9%;
+    /* Lightened to ~#151515 equivalent in navy palette */
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --primary: 199 89% 48%;
+    /* Bright Cyber Blue */
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 64%;
+    /* Increased brightness to ~#A3A3A3 */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 0 0% 81%;
+    /* Increased brightness to ~#CFCFCF */
+
+    --accent: 263 70% 50%;
+    /* Vibrant Purple */
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 199 89% 48%;
+
+    --radius: 12px;
   }
 }
 
@@ -83,14 +94,26 @@
 
   body {
     font-family: var(--font-inter), system-ui, sans-serif;
-    background-color: #ffffff;
-    color: #111111;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-weight: 400;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 500;
+    /* Minimum 500 for headers */
+    letter-spacing: -0.02em;
   }
 
   .dark body {
-    background-color: #111111;
+    background-color: #0A0A0A;
     color: #ffffff;
   }
 
@@ -168,14 +191,102 @@
 /* Utility for grayscale text hierarchy */
 @layer utilities {
   .text-primary {
-    color: #111111;
+    color: #ffffff;
   }
 
   .text-secondary {
-    color: #6b7280;
+    color: #A3A3A3;
   }
 
-  .text-tertiary {
-    color: #9ca3af;
+  .text-muted {
+    color: #CFCFCF;
+  }
+
+  .text-label {
+    color: #5C7FFF;
+  }
+
+  .shadow-nova {
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+  }
+
+  .hover-brighten {
+    @apply transition-all duration-200;
+  }
+
+  .hover-brighten:hover {
+    background-color: rgba(0, 194, 255, 0.1) !important;
+    color: #00C2FF !important;
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-4px);
+    }
+
+    100% {
+      transform: translateY(0px);
+    }
+  }
+}
+
+
+/* OnchainKit Nova Theme Overrides */
+@layer components {
+  :root {
+    /* OnchainKit Dark Theme Variables (Nova Aesthetic) */
+    --ock-bg-default: hsl(240 10% 3.9%);
+    --ock-bg-alternate: hsl(240 10% 10%);
+    --ock-bg-inverse: #ffffff;
+    --ock-bg-primary: hsl(199 89% 48%);
+    /* Cyber Blue */
+    --ock-bg-primary-hover: hsl(199 89% 58%);
+    --ock-bg-primary-active: hsl(199 89% 38%);
+    --ock-bg-secondary: hsl(240 4% 16%);
+    --ock-bg-secondary-hover: hsl(240 4% 20%);
+
+    --ock-text-foreground: #ffffff;
+    --ock-text-foreground-muted: hsl(240 5% 64.9%);
+    --ock-text-inverse: #0a0a0a;
+    --ock-text-primary: hsl(199 89% 48%);
+    --ock-text-error: #f87171;
+    --ock-text-success: #4ade80;
+
+    --ock-border: hsl(240 4% 16%);
+    --ock-border-active: hsl(199 89% 48%);
+
+    --ock-radius: 1.5rem;
+    /* Nova rounded corners */
+    --ock-font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  }
+
+  /* Apply glassmorphism to OnchainKit modals */
+  [data-onchainkit] [role="dialog"],
+  [data-onchainkit] .ock-modal {
+    backdrop-filter: blur(16px);
+    background: hsl(240 10% 10% / 0.8) !important;
+    border: 1px solid hsl(240 4% 16%);
+    border-radius: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 194, 255, 0.1);
+  }
+
+  /* Style OnchainKit buttons with Nova colors */
+  [data-onchainkit] button[data-variant="primary"] {
+    background: hsl(199 89% 48%);
+    border-radius: 1.5rem;
+    transition: all 0.25s ease-in-out;
+  }
+
+  [data-onchainkit] button[data-variant="primary"]:hover {
+    background: hsl(199 89% 58%);
+    transform: translateY(-1px);
   }
 }
