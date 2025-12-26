@@ -8,6 +8,7 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
 import { ThemeProvider, useTheme } from "next-themes";
 
+
 // Determine chain based on environment variable (default to Base Sepolia for demo)
 const chainId = process.env.NEXT_PUBLIC_CHAIN_ID
   ? parseInt(process.env.NEXT_PUBLIC_CHAIN_ID, 10)

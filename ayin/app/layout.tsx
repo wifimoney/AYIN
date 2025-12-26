@@ -37,7 +37,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
+      <head>
+        <link rel="stylesheet" href="/onchainkit.css" />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <RootProvider>
           <AutoAuth />
@@ -47,3 +49,4 @@ export default function RootLayout({
     </html>
   );
 }
+

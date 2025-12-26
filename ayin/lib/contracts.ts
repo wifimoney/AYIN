@@ -62,3 +62,35 @@ export function getContractAddress(
   return contracts[contractName];
 }
 
+export const CONTRACTS = {
+  DELEGATION_POLICY: '0xF7A24BFE63904DAa1d3Ea1020Bc356FDb1adb3DE', // Base Sepolia DelegationPolicy
+  PREDICTION_MARKET: '0x6056a0bAA7d6BD6c0aA27feee847C11fb5eb5BD9', // Base Sepolia PredictionMarket
+} as const;
+
+export const ABIS = {
+  DELEGATION: [
+    {
+      name: 'createDelegation',
+      type: 'function',
+      inputs: [
+        { name: 'agentAddress', type: 'address' },
+        { name: 'budget', type: 'uint256' },
+        { name: 'expiresAt', type: 'uint256' },
+      ],
+      outputs: [{ name: 'delegationId', type: 'uint256' }],
+      stateMutability: 'nonpayable',
+    },
+  ],
+  MARKET: [
+    {
+      name: 'placeBet',
+      type: 'function',
+      inputs: [
+        { name: 'marketId', type: 'uint256' },
+        { name: 'outcome', type: 'bool' },
+        { name: 'amount', type: 'uint256' },
+      ],
+      stateMutability: 'payable',
+    },
+  ],
+};
