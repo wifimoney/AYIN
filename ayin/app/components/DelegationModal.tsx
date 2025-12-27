@@ -113,21 +113,21 @@ export default function DelegationModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-[#05070A]/80 backdrop-blur-md flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-gray-900 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-gray-700 shadow-2xl">
+      <div className="bg-[#0A0E16] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-white/10 shadow-[0_0_30px_rgba(0,82,255,0.15)]">
         {/* Header */}
-        <div className="sticky top-0 bg-gray-900 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
+        <div className="sticky top-0 bg-[#0A0E16]/95 backdrop-blur-sm border-b border-white/10 px-6 py-4 flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold">Create Delegation</h2>
+            <h2 className="text-2xl font-bold text-white">Create Delegation</h2>
             <p className="text-sm text-gray-400 mt-1">
               Delegate to {agent?.name || 'agent'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5"
           >
             <svg
               className="w-6 h-6"
@@ -146,7 +146,7 @@ export default function DelegationModal({
         </div>
 
         {/* Progress Steps */}
-        <div className="px-6 py-4 border-b border-gray-700">
+        <div className="px-6 py-4 border-b border-white/10">
           <div className="flex justify-between items-center">
             {[
               { num: 1, label: 'Budget' },
@@ -156,18 +156,18 @@ export default function DelegationModal({
               <div key={s.num} className="flex items-center flex-1">
                 <div className="flex flex-col items-center flex-1">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${step >= s.num
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-400'
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${step >= s.num
+                      ? 'bg-[#0052FF] text-white shadow-[0_0_12px_rgba(0,82,255,0.5)]'
+                      : 'bg-white/5 text-gray-500'
                       }`}
                   >
                     {s.num}
                   </div>
-                  <span className="text-xs text-gray-400 mt-1">{s.label}</span>
+                  <span className={`text-xs mt-1 ${step >= s.num ? 'text-[#0052FF]' : 'text-gray-500'}`}>{s.label}</span>
                 </div>
                 {idx < 2 && (
                   <div
-                    className={`h-0.5 flex-1 -mx-2 ${step > s.num ? 'bg-blue-600' : 'bg-gray-700'
+                    className={`h-0.5 flex-1 -mx-2 transition-all ${step > s.num ? 'bg-[#0052FF]' : 'bg-white/10'
                       }`}
                   />
                 )}
@@ -193,9 +193,9 @@ export default function DelegationModal({
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
                     placeholder="0.0"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-lg focus:border-blue-500 focus:outline-none"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-lg text-white focus:border-[#0052FF] focus:outline-none focus:ring-1 focus:ring-[#0052FF]/30 transition-all placeholder:text-gray-500"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
                     ETH
                   </span>
                 </div>
@@ -212,7 +212,10 @@ export default function DelegationModal({
                     <button
                       key={amount}
                       onClick={() => setBudget(amount)}
-                      className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg py-2 text-sm transition-colors"
+                      className={`bg-white/5 hover:bg-[#0052FF]/10 border rounded-xl py-2 text-sm font-medium transition-all ${budget === amount
+                          ? 'border-[#0052FF] text-[#0052FF] shadow-[0_0_12px_rgba(0,82,255,0.19)]'
+                          : 'border-white/10 text-white hover:border-[#0052FF]/50'
+                        }`}
                     >
                       {amount} ETH
                     </button>
@@ -222,22 +225,22 @@ export default function DelegationModal({
 
               {/* Agent Info */}
               {agent && (
-                <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                  <h4 className="font-semibold mb-3">Agent Performance</h4>
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                  <h4 className="font-semibold mb-3 text-white">Agent Performance</h4>
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <p className="text-gray-400">Win Rate</p>
-                      <p className="font-semibold text-green-400">
+                      <p className="font-semibold text-emerald-400">
                         {agent.winRate || '78%'}
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-400">Type</p>
-                      <p className="font-semibold">{agent.type}</p>
+                      <p className="font-semibold text-white">{agent.type}</p>
                     </div>
                     <div>
                       <p className="text-gray-400">Reputation</p>
-                      <p className="font-semibold text-blue-400">
+                      <p className="font-semibold text-[#0052FF]">
                         {agent.reputation}/100
                       </p>
                     </div>
@@ -267,12 +270,12 @@ export default function DelegationModal({
                         setDuration(option.days);
                         setCustomDuration('');
                       }}
-                      className={`py-3 px-4 rounded-lg border-2 transition-all ${duration === option.days && !customDuration
-                          ? 'border-blue-500 bg-blue-500/10'
-                          : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                      className={`py-3 px-4 rounded-2xl border-2 transition-all ${duration === option.days && !customDuration
+                        ? 'border-[#0052FF] bg-[#0052FF]/10 shadow-[0_0_12px_rgba(0,82,255,0.19)]'
+                        : 'border-white/10 bg-white/5 hover:border-[#0052FF]/50'
                         }`}
                     >
-                      <p className="font-semibold">{option.label}</p>
+                      <p className="font-semibold text-white">{option.label}</p>
                       <p className="text-xs text-gray-400">{option.days} days</p>
                     </button>
                   ))}
@@ -294,15 +297,15 @@ export default function DelegationModal({
                     setDuration(parseInt(e.target.value) || 0);
                   }}
                   placeholder="Enter custom days"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:border-[#0052FF] focus:outline-none focus:ring-1 focus:ring-[#0052FF]/30 transition-all placeholder:text-gray-500"
                 />
               </div>
 
               {/* Duration Info */}
-              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
-                <p className="text-sm text-blue-300">
+              <div className="bg-[#0052FF]/10 border border-[#0052FF]/30 rounded-2xl p-4">
+                <p className="text-sm text-[#4D8AFF]">
                   ℹ️ Delegation expires in{' '}
-                  <strong>{duration} day{duration !== 1 ? 's' : ''}</strong>
+                  <strong className="text-white">{duration} day{duration !== 1 ? 's' : ''}</strong>
                   <br />
                   <span className="text-xs text-gray-400">
                     You can withdraw unused funds after expiry
@@ -315,38 +318,38 @@ export default function DelegationModal({
           {/* Step 3: Confirm */}
           {step === 3 && (
             <div className="space-y-6">
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <h4 className="font-semibold mb-4">Delegation Summary</h4>
+              <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                <h4 className="font-semibold mb-4 text-white">Delegation Summary</h4>
 
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Agent</span>
-                    <span className="font-medium">{agent?.name || 'Selected Agent'}</span>
+                    <span className="font-medium text-white">{agent?.name || 'Selected Agent'}</span>
                   </div>
 
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Budget</span>
-                    <span className="font-semibold text-lg">{budget} ETH</span>
+                    <span className="font-semibold text-lg text-white">{budget} ETH</span>
                   </div>
 
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Duration</span>
-                    <span className="font-medium">
+                    <span className="font-medium text-white">
                       {duration} day{duration !== 1 ? 's' : ''}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Expires</span>
-                    <span className="font-medium">
+                    <span className="font-medium text-white">
                       {new Date(Date.now() + duration * 86400000).toLocaleDateString()}
                     </span>
                   </div>
 
-                  <div className="pt-3 border-t border-gray-700">
+                  <div className="pt-3 border-t border-white/10">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 text-sm">Gas Fee</span>
-                      <span className="text-green-400 font-semibold">
+                      <span className="text-emerald-400 font-semibold">
                         FREE ✨
                       </span>
                     </div>
@@ -373,7 +376,7 @@ export default function DelegationModal({
                 >
                   <TransactionButton
                     text="Confirm Delegation"
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white font-semibold py-3 rounded-lg transition-opacity"
+                    className="w-full bg-[#0052FF] hover:bg-[#1a66ff] text-white font-semibold py-3 rounded-2xl transition-all shadow-[0_0_12px_rgba(0,82,255,0.3)] hover:shadow-[0_0_20px_rgba(0,82,255,0.5)]"
                   />
                   <TransactionStatus>
                     <div className="mt-4">
@@ -385,7 +388,7 @@ export default function DelegationModal({
               )}
 
               {/* Terms */}
-              <div className="text-xs text-gray-500 bg-gray-800/50 rounded-lg p-3">
+              <div className="text-xs text-gray-500 bg-white/5 rounded-2xl p-3 border border-white/5">
                 <p>
                   ⚠️ By confirming, you delegate {budget} ETH to {agent?.name} for {duration} days.
                   The agent will use this budget to trade on your behalf.
@@ -397,11 +400,11 @@ export default function DelegationModal({
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 px-6 py-4 flex gap-3">
+        <div className="sticky bottom-0 bg-[#0A0E16]/95 backdrop-blur-sm border-t border-white/10 px-6 py-4 flex gap-3">
           {step > 1 && step < 3 && (
             <button
               onClick={handleBack}
-              className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors"
+              className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold py-3 rounded-2xl transition-all"
             >
               Back
             </button>
@@ -414,7 +417,7 @@ export default function DelegationModal({
                 (step === 1 && !isValidBudget) ||
                 (step === 2 && !isValidDuration)
               }
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors"
+              className="flex-1 bg-[#0052FF] hover:bg-[#1a66ff] disabled:bg-white/10 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-2xl transition-all shadow-[0_0_12px_rgba(0,82,255,0.19)] hover:shadow-[0_0_16px_rgba(0,82,255,0.4)] disabled:shadow-none"
             >
               Continue
             </button>
@@ -423,7 +426,7 @@ export default function DelegationModal({
           {step === 1 && (
             <button
               onClick={onClose}
-              className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors"
+              className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold py-3 rounded-2xl transition-all"
             >
               Cancel
             </button>

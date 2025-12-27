@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -37,45 +35,54 @@
     --ring: 221.2 83.2% 53.3%;
 
     --radius: 0.5rem;
+
+    /* Base Accent Blue */
+    --base-blue: #0052FF;
+    --base-blue-glow: rgba(0, 82, 255, 0.19);
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    /* Deep Navy Gradient Background Colors */
+    --bg-gradient-start: #05070A;
+    --bg-gradient-mid: #0A0E16;
+    --bg-gradient-end: #0E1420;
+
+    --background: 222 39% 4%;
     --foreground: 0 0% 98%;
 
-    --surface: 240 6% 9%;
-    /* Lightened to ~#151515 equivalent in navy palette */
+    --surface: 222 30% 7%;
 
-    --card: 240 10% 3.9%;
+    --card: 222 30% 7%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 3.9%;
+    --popover: 222 30% 7%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 199 89% 48%;
-    /* Bright Cyber Blue */
+    /* Base Accent Blue */
+    --primary: 220 100% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 4% 16%;
+    /* Base Blue Raw */
+    --base-blue: #0052FF;
+    --base-blue-glow: rgba(0, 82, 255, 0.19);
+
+    --secondary: 222 20% 12%;
     --secondary-foreground: 0 0% 64%;
-    /* Increased brightness to ~#A3A3A3 */
 
-    --muted: 240 4% 16%;
+    --muted: 222 20% 12%;
     --muted-foreground: 0 0% 81%;
-    /* Increased brightness to ~#CFCFCF */
 
-    --accent: 263 70% 50%;
-    /* Vibrant Purple */
+    --accent: 220 100% 50%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 4% 16%;
-    --input: 240 4% 16%;
-    --ring: 199 89% 48%;
+    --border: 222 20% 15%;
+    --input: 222 20% 15%;
+    --ring: 220 100% 50%;
 
-    --radius: 12px;
+    --radius: 16px;
   }
 }
 
@@ -93,12 +100,14 @@
   }
 
   body {
-    font-family: var(--font-inter), system-ui, sans-serif;
-    background-color: hsl(var(--background));
+    font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: linear-gradient(180deg, var(--bg-gradient-start, #05070A) 0%, var(--bg-gradient-mid, #0A0E16) 50%, var(--bg-gradient-end, #0E1420) 100%);
+    background-attachment: fixed;
     color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-weight: 400;
+    min-height: 100vh;
   }
 
   h1,
@@ -107,13 +116,13 @@
   h4,
   h5,
   h6 {
-    font-weight: 500;
-    /* Minimum 500 for headers */
+    font-weight: 600;
     letter-spacing: -0.02em;
   }
 
   .dark body {
-    background-color: #0A0A0A;
+    background: linear-gradient(180deg, #05070A 0%, #0A0E16 50%, #0E1420 100%);
+    background-attachment: fixed;
     color: #ffffff;
   }
 
@@ -140,7 +149,7 @@
   }
 
   .dark input[type="range"] {
-    background: #374151;
+    background: rgba(255, 255, 255, 0.1);
   }
 
   input[type="range"]::-webkit-slider-thumb {
@@ -148,31 +157,34 @@
     appearance: none;
     width: 16px;
     height: 16px;
-    background: #111111;
+    background: #0052FF;
     border-radius: 50%;
     cursor: pointer;
-    transition: transform 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
 
   .dark input[type="range"]::-webkit-slider-thumb {
-    background: #ffffff;
+    background: #0052FF;
+    box-shadow: 0 0 12px rgba(0, 82, 255, 0.3);
   }
 
   input[type="range"]::-webkit-slider-thumb:hover {
     transform: scale(1.1);
+    box-shadow: 0 0 16px rgba(0, 82, 255, 0.5);
   }
 
   input[type="range"]::-moz-range-thumb {
     width: 16px;
     height: 16px;
-    background: #111111;
+    background: #0052FF;
     border-radius: 50%;
     cursor: pointer;
     border: none;
   }
 
   .dark input[type="range"]::-moz-range-thumb {
-    background: #ffffff;
+    background: #0052FF;
+    box-shadow: 0 0 12px rgba(0, 82, 255, 0.3);
   }
 
   /* Focus states */
@@ -199,15 +211,39 @@
   }
 
   .text-muted {
-    color: #CFCFCF;
+    color: #6B7280;
   }
 
   .text-label {
-    color: #5C7FFF;
+    color: #0052FF;
+  }
+
+  /* Base Blue Glow Effect */
+  .glow-base {
+    box-shadow: 0 0 12px rgba(0, 82, 255, 0.19);
+  }
+
+  .glow-base-strong {
+    box-shadow: 0 0 20px rgba(0, 82, 255, 0.4);
   }
 
   .shadow-nova {
     box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+  }
+
+  /* Glass Card Styles */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem;
+  }
+
+  .glass-card-lg {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
   }
 
   .hover-brighten {
@@ -215,8 +251,8 @@
   }
 
   .hover-brighten:hover {
-    background-color: rgba(0, 194, 255, 0.1) !important;
-    color: #00C2FF !important;
+    background-color: rgba(0, 82, 255, 0.1) !important;
+    color: #0052FF !important;
   }
 
   .animate-float {
@@ -236,57 +272,69 @@
       transform: translateY(0px);
     }
   }
+
+  /* Gradient Text */
+  .gradient-text {
+    background: linear-gradient(135deg, #0052FF 0%, #3B82F6 50%, #60A5FA 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Deep Navy Background */
+  .bg-deep-navy {
+    background: linear-gradient(180deg, #05070A 0%, #0A0E16 50%, #0E1420 100%);
+  }
 }
 
 
-/* OnchainKit Nova Theme Overrides */
+/* OnchainKit Base Theme Overrides */
 @layer components {
   :root {
-    /* OnchainKit Dark Theme Variables (Nova Aesthetic) */
-    --ock-bg-default: hsl(240 10% 3.9%);
-    --ock-bg-alternate: hsl(240 10% 10%);
+    /* OnchainKit Dark Theme Variables (Base Aesthetic) */
+    --ock-bg-default: #0A0E16;
+    --ock-bg-alternate: #0E1420;
     --ock-bg-inverse: #ffffff;
-    --ock-bg-primary: hsl(199 89% 48%);
-    /* Cyber Blue */
-    --ock-bg-primary-hover: hsl(199 89% 58%);
-    --ock-bg-primary-active: hsl(199 89% 38%);
-    --ock-bg-secondary: hsl(240 4% 16%);
-    --ock-bg-secondary-hover: hsl(240 4% 20%);
+    --ock-bg-primary: #0052FF;
+    --ock-bg-primary-hover: #1a66ff;
+    --ock-bg-primary-active: #0047e0;
+    --ock-bg-secondary: rgba(255, 255, 255, 0.05);
+    --ock-bg-secondary-hover: rgba(255, 255, 255, 0.08);
 
     --ock-text-foreground: #ffffff;
-    --ock-text-foreground-muted: hsl(240 5% 64.9%);
-    --ock-text-inverse: #0a0a0a;
-    --ock-text-primary: hsl(199 89% 48%);
+    --ock-text-foreground-muted: #6B7280;
+    --ock-text-inverse: #05070A;
+    --ock-text-primary: #0052FF;
     --ock-text-error: #f87171;
     --ock-text-success: #4ade80;
 
-    --ock-border: hsl(240 4% 16%);
-    --ock-border-active: hsl(199 89% 48%);
+    --ock-border: rgba(255, 255, 255, 0.1);
+    --ock-border-active: #0052FF;
 
-    --ock-radius: 1.5rem;
-    /* Nova rounded corners */
-    --ock-font-family: var(--font-inter), Inter, system-ui, sans-serif;
+    --ock-radius: 1rem;
+    --ock-font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 
   /* Apply glassmorphism to OnchainKit modals */
   [data-onchainkit] [role="dialog"],
   [data-onchainkit] .ock-modal {
-    backdrop-filter: blur(16px);
-    background: hsl(240 10% 10% / 0.8) !important;
-    border: 1px solid hsl(240 4% 16%);
-    border-radius: 1.5rem;
-    box-shadow: 0 4px 16px rgba(0, 194, 255, 0.1);
+    backdrop-filter: blur(20px);
+    background: rgba(10, 14, 22, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    box-shadow: 0 0 12px rgba(0, 82, 255, 0.19);
   }
 
-  /* Style OnchainKit buttons with Nova colors */
+  /* Style OnchainKit buttons with Base Blue */
   [data-onchainkit] button[data-variant="primary"] {
-    background: hsl(199 89% 48%);
-    border-radius: 1.5rem;
+    background: #0052FF;
+    border-radius: 1rem;
     transition: all 0.25s ease-in-out;
   }
 
   [data-onchainkit] button[data-variant="primary"]:hover {
-    background: hsl(199 89% 58%);
+    background: #1a66ff;
     transform: translateY(-1px);
+    box-shadow: 0 0 12px rgba(0, 82, 255, 0.3);
   }
 }

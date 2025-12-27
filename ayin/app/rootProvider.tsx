@@ -25,6 +25,7 @@ const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ||
 // Add WalletConnect only if project ID is provided
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
+// Build connectors array
 const connectors = [
   farcasterFrame(),
   injected(),
@@ -32,9 +33,12 @@ const connectors = [
   ...(walletConnectProjectId ? [walletConnect({ projectId: walletConnectProjectId })] : [])
 ];
 
+// Create wagmi config - using type assertion to handle connector type variance
+// This is necessary due to type incompatibilities between @farcaster/miniapp-wagmi-connector and wagmi
 const config = createConfig({
   chains: [base, baseSepolia],
-  connectors,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  connectors: connectors as any,
   transports: {
     [base.id]: http(),
     [baseSepolia.id]: http(),

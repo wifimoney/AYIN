@@ -1,58 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Agent, ApiResponse } from '@/lib/types';
 import { x402Service } from '@/lib/x402';
-
-// In-memory mock agents (fallback)
-// In-memory mock agents (fallback)
-const AGENTS: Agent[] = [
-  {
-    id: '1',
-    name: 'Prince Wren',
-    type: 'Momentum',
-    status: 'Active',
-    reputation: 98,
-    winRate: '78%',
-    drawdown: '0%',
-    aum: '0',
-    risk: 'Low',
-    strategy: 'Trend Follower',
-    verifiedOnchain: true,
-    operator: '0xdA31A1967F0007fA623549132484db7592d3B413',
-    image: '/assets/Gemini_Generated_Image_grb35grb35grb35g.png',
-  },
-  {
-    id: '2',
-    name: 'Oracle Eye',
-    type: 'Market Maker',
-    status: 'Active',
-    reputation: 95,
-    winRate: '82%',
-    drawdown: '0%',
-    aum: '0',
-    risk: 'Medium',
-    strategy: 'Delta-Neutral LP',
-    image: '/assets/unnamed-1.jpg',
-  },
-  {
-    id: '3',
-    name: 'Baron Bull',
-    type: 'Mean Reversion',
-    status: 'Active',
-    reputation: 88,
-    winRate: '60%',
-    drawdown: '0%',
-    aum: '0',
-    risk: 'High',
-    strategy: 'Volatility Mean Rev',
-    image: '/assets/unnamed.jpg',
-  },
-];
+import { getAgents } from '@/lib/data';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const search = searchParams.get('search');
+    const status = searchParams.get('status') || undefined;
+    const search = searchParams.get('search') || undefined;
 
     // 1. Fetch live activity logs
     let logs: any[] = [];
@@ -62,8 +17,11 @@ export async function GET(request: NextRequest) {
       console.warn('Failed to fetch x402 logs', e);
     }
 
-    // 2. Map static agents + enrich
-    let agents = AGENTS.map(agent => {
+    // 2. Get agents from centralized data store
+    let agents = getAgents({ status, search });
+
+    // 3. Enrich with activity data
+    agents = agents.map(agent => {
       // Calculate recent activity
       const agentLogs = logs.filter(l => l.agentId.toString() === agent.id);
       const successfulOps = agentLogs.filter((l: any) => l.success).length;
@@ -86,23 +44,6 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Filter by status if provided
-    if (status) {
-      agents = agents.filter(
-        (agent) => agent.status.toLowerCase() === status.toLowerCase()
-      );
-    }
-
-    // Search by name or type if provided
-    if (search) {
-      const searchLower = search.toLowerCase();
-      agents = agents.filter(
-        (agent) =>
-          agent.name.toLowerCase().includes(searchLower) ||
-          agent.type.toLowerCase().includes(searchLower)
-      );
-    }
-
     const response: ApiResponse<Agent[]> = {
       success: true,
       data: agents,
@@ -117,4 +58,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

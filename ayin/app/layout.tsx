@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import { RootProvider } from './rootProvider';
 import './globals.css';
 import { AutoAuth } from './api/auth/auto-auth';
 
-const inter = Inter({
-  variable: '--font-inter',
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: '--font-plus-jakarta',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -40,7 +41,7 @@ export default function RootLayout({
       <head>
         <link rel="stylesheet" href="/onchainkit.css" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${plusJakartaSans.variable} font-sans antialiased`}>
         <RootProvider>
           <AutoAuth />
           {children}

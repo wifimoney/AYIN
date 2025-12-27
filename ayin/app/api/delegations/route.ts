@@ -1,28 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Delegation, DelegationIntent, ApiResponse } from '@/lib/types';
 import { getSession } from '@/lib/auth';
-
-// In-memory storage for delegations (mock)
-// In production, this would be stored in a database
-let mockDelegations: Delegation[] = [
-  {
-    id: 'del-1',
-    agentId: '1',
-    agentName: 'Sentinel Alpha',
-    status: 'active',
-    constraints: {
-      agentId: '1',
-      allocation: 5000,
-      duration: 30,
-      maxDrawdown: 10,
-      maxPosition: 20,
-      deltaNeutral: true,
-      stopLoss: true,
-    },
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    expiresAt: new Date(Date.now() + 23 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+import {
+  getDelegations,
+  addDelegation,
+  hasActiveDelegation,
+  updateDelegationStatus,
+} from '@/lib/data';
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,14 +16,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    const status = searchParams.get('status') || undefined;
 
-    let delegations = [...mockDelegations];
-
-    // Filter by status if provided
-    if (status) {
-      delegations = delegations.filter((d) => d.status === status);
-    }
+    const delegations = getDelegations({ status });
 
     const response: ApiResponse<Delegation[]> = {
       success: true,
@@ -91,11 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for existing active delegation with same agent
-    const existingDelegation = mockDelegations.find(
-      (d) => d.agentId === intent.agentId && d.status === 'active'
-    );
-
-    if (existingDelegation) {
+    if (hasActiveDelegation(intent.agentId)) {
       const response: ApiResponse<Delegation> = {
         success: false,
         error: 'DELEGATION_EXISTS',
@@ -104,7 +79,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new delegation with pending status
-    // In production, this would trigger backend validation and on-chain execution
     const newDelegation: Delegation = {
       id: `del-${Date.now()}`,
       agentId: intent.agentId,
@@ -116,16 +90,13 @@ export async function POST(request: NextRequest) {
       ).toISOString(),
     };
 
-    // Simulate async processing - mark as active after creation
-    // In production, status would update based on on-chain confirmation
-    setTimeout(() => {
-      const delegation = mockDelegations.find((d) => d.id === newDelegation.id);
-      if (delegation) {
-        delegation.status = 'active';
-      }
-    }, 2000);
+    // Add to centralized data store
+    addDelegation(newDelegation);
 
-    mockDelegations.push(newDelegation);
+    // Simulate async processing - mark as active after creation
+    setTimeout(() => {
+      updateDelegationStatus(newDelegation.id, 'active');
+    }, 2000);
 
     const response: ApiResponse<Delegation> = {
       success: true,
@@ -141,4 +112,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 500 });
   }
 }
-
