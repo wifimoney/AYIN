@@ -49,18 +49,38 @@ export function AutoAuth() {
                     // Fallback: Try context-based auth (less secure, for backward compatibility)
                     console.warn('Quick Auth unavailable, falling back to context:', quickAuthError);
 
-                    const context = await sdk.context;
-                    if (context?.user && !sessionCreated) {
-                        await fetch('/api/auth/session', {
+                    try {
+                        const context = await sdk.context;
+                        if (context?.user && !sessionCreated) {
+                            await fetch('/api/auth/session', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    fid: context.user.fid,
+                                    username: context.user.username,
+                                    walletAddress: address,
+                                }),
+                            });
+                            setSessionCreated(true);
+                            return;
+                        }
+                    } catch (contextError) {
+                        console.warn('Context auth unavailable:', contextError);
+                    }
+
+                    // Final fallback: Create session with wallet address only
+                    // This handles the case where the user is outside Farcaster
+                    if (address && !sessionCreated) {
+                        const response = await fetch('/api/auth/session', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                fid: context.user.fid,
-                                username: context.user.username,
-                                walletAddress: address,
-                            }),
+                            body: JSON.stringify({ address }),
                         });
-                        setSessionCreated(true);
+                        const data = await response.json();
+                        if (data.success && data.token) {
+                            localStorage.setItem('session_token', data.token);
+                            setSessionCreated(true);
+                        }
                     }
                 }
             } catch (err) {

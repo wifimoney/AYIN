@@ -35,6 +35,7 @@ export interface Agent {
   registeredAt?: number; // Timestamp of onchain registration
   verifiedOnchain?: boolean; // Whether agent exists in AgentRegistry
   image?: string; // Optional image URL for the agent avatar
+  signalStrength?: number; // 0-100 indicating current activity level
 }
 
 /**

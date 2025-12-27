@@ -19,7 +19,7 @@ export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Focus only on the primary trading agents
-  const displayAgents = agents.slice(0, 3);
+  const displayAgents = agents.slice(0, 4);
 
   const handleDelegate = (agent: Agent) => {
     setSelectedAgent(agent);

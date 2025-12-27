@@ -24,9 +24,9 @@ export function WalletButton() {
   return (
     <div className="flex items-center gap-3">
       {/* Show Farcaster identity if available */}
-      {user && (
+      {user && (user.username || user.fid) && (
         <div className="text-sm text-right mr-2">
-          <p className="font-medium">
+          <p className="font-medium text-white/70">
             {user.username ? `@${user.username}` : `FID: ${user.fid}`}
           </p>
         </div>
