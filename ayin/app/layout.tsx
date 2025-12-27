@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { RootProvider } from './rootProvider';
 import './globals.css';
-import { AutoAuth } from './api/auth/auto-auth';
+import { AutoAuth } from './components/auth/AutoAuth';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--font-plus-jakarta',

@@ -4,6 +4,11 @@ import { sdk } from '@farcaster/miniapp-sdk';
 import { useAccount } from 'wagmi';
 import { useEffect, useState } from 'react';
 
+/**
+ * AutoAuth Component
+ * Handles automatic authentication via Farcaster Quick Auth or context-based fallback.
+ * This is a silent component that renders nothing but manages session state.
+ */
 export function AutoAuth() {
     const { address } = useAccount();
     const [sessionCreated, setSessionCreated] = useState(false);
