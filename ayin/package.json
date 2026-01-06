@@ -8,7 +8,14 @@
     "dev:agent": "cd ayin-agent && npm run dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:prod": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset"
   },
   "dependencies": {
     "@base-org/account": "^2.5.1",
@@ -24,6 +31,7 @@
     "@mui/icons-material": "7.3.5",
     "@mui/material": "7.3.5",
     "@popperjs/core": "2.11.8",
+    "@prisma/client": "^6.19.1",
     "@radix-ui/react-accordion": "1.2.3",
     "@radix-ui/react-alert-dialog": "1.1.6",
     "@radix-ui/react-aspect-ratio": "1.1.2",
@@ -62,11 +70,13 @@
     "framer-motion": "^12.23.26",
     "input-otp": "1.4.2",
     "install": "^0.13.0",
+    "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "0.487.0",
     "next": "^16.1.1-canary.5",
     "next-themes": "0.4.6",
     "npm": "^11.7.0",
+    "prisma": "^6.19.1",
     "react": "^19.0.0",
     "react-day-picker": "^9.0.0",
     "react-dnd": "16.0.1",
@@ -97,6 +107,7 @@
     "postcss": "^8.4.47",
     "postcss-import": "^16.1.1",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   },
   "overrides": {

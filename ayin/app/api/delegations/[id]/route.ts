@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const delegation = getDelegationById(id);
+    const delegation = await getDelegationById(id);
 
     if (!delegation) {
       const response: ApiResponse<Delegation> = {
@@ -39,7 +39,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const delegation = getDelegationById(id);
+    const delegation = await getDelegationById(id);
 
     if (!delegation) {
       const response: ApiResponse<Delegation> = {
@@ -50,7 +50,7 @@ export async function DELETE(
     }
 
     // Update status to expired (simulating revocation)
-    const updatedDelegation = updateDelegationStatus(id, 'expired');
+    const updatedDelegation = await updateDelegationStatus(id, 'expired');
 
     const response: ApiResponse<Delegation> = {
       success: true,

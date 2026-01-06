@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const agent = getAgentById(id);
+    const agent = await getAgentById(id);
 
     if (!agent) {
       const response: ApiResponse<Agent> = {

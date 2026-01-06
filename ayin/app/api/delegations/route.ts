@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Delegation, DelegationIntent, ApiResponse } from '@/lib/types';
+import type { Delegation, DelegationIntent, DelegationStatus, ApiResponse } from '@/lib/types';
 import { getSession } from '@/lib/auth';
 import {
   getDelegations,
-  addDelegation,
   hasActiveDelegation,
+  createDelegation,
   updateDelegationStatus,
+  getUserByWallet,
+  createOrUpdateUser,
 } from '@/lib/data';
+import { notifyAgentService } from '@/lib/api/agent-service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,9 +19,31 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') || undefined;
+    const statusParam = searchParams.get('status') || undefined;
 
-    const delegations = getDelegations({ status });
+    // Validate status is a valid DelegationStatus
+    const status: DelegationStatus | undefined = statusParam as DelegationStatus | undefined;
+
+    // Get user from session
+    const walletAddress = session.walletAddress || session.address;
+    if (!walletAddress) {
+      return NextResponse.json({ success: false, error: 'NO_WALLET' }, { status: 400 });
+    }
+
+    const user = await getUserByWallet(walletAddress);
+    if (!user) {
+      // Return empty list for users without profiles
+      const response: ApiResponse<Delegation[]> = {
+        success: true,
+        data: [],
+      };
+      return NextResponse.json(response);
+    }
+
+    const delegations = await getDelegations({
+      status,
+      userId: user.id
+    });
 
     const response: ApiResponse<Delegation[]> = {
       success: true,
@@ -27,6 +52,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
+    console.error('[API] Delegations GET error:', error);
     const response: ApiResponse<Delegation[]> = {
       success: false,
       error: 'SERVER_ERROR',
@@ -69,8 +95,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(response, { status: 400 });
     }
 
-    // Check for existing active delegation with same agent
-    if (hasActiveDelegation(intent.agentId)) {
+    // Get or create user
+    const walletAddress = session.walletAddress || session.address;
+    if (!walletAddress) {
+      return NextResponse.json({ success: false, error: 'NO_WALLET' }, { status: 400 });
+    }
+
+    const user = await createOrUpdateUser({
+      walletAddress,
+      fid: session.fid,
+      username: session.username,
+    });
+
+    // Check for existing active delegation with same agent for this user
+    const hasExisting = await hasActiveDelegation(intent.agentId, user.id);
+    if (hasExisting) {
       const response: ApiResponse<Delegation> = {
         success: false,
         error: 'DELEGATION_EXISTS',
@@ -78,25 +117,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(response, { status: 400 });
     }
 
-    // Create new delegation with pending status
-    const newDelegation: Delegation = {
-      id: `del-${Date.now()}`,
-      agentId: intent.agentId,
-      status: 'pending',
-      constraints: intent,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(
-        Date.now() + intent.duration * 24 * 60 * 60 * 1000
-      ).toISOString(),
-    };
+    // Create new delegation in database (starts as PENDING)
+    const newDelegation = await createDelegation({
+      userId: user.id,
+      intent,
+    });
 
-    // Add to centralized data store
-    addDelegation(newDelegation);
-
-    // Simulate async processing - mark as active after creation
-    setTimeout(() => {
-      updateDelegationStatus(newDelegation.id, 'active');
-    }, 2000);
+    // Notify the agent service to process this delegation (Phase 1.4)
+    // This replaces the setTimeout mock with real service call
+    notifyAgentService(newDelegation.id, intent).catch((err: Error) => {
+      console.error('[API] Failed to notify agent service:', err);
+      // TODO: Implement retry queue
+    });
 
     const response: ApiResponse<Delegation> = {
       success: true,
@@ -105,6 +137,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
+    console.error('[API] Delegations POST error:', error);
     const response: ApiResponse<Delegation> = {
       success: false,
       error: 'SERVER_ERROR',

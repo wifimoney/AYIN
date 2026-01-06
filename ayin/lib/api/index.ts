@@ -6,4 +6,5 @@
 export * from './agents';
 export * from './markets';
 export * from './delegations';
+export * from './agent-service';
 

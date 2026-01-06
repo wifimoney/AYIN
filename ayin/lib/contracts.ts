@@ -15,10 +15,10 @@
 // ⚠️ IMPORTANT: After deployment, replace these addresses with actual deployed addresses
 // Addresses are FROZEN after deployment - judges will verify on BaseScan
 export const CONTRACTS_BASE_SEPOLIA = {
-  AgentRegistry: '0xD585649d1d8170B72b9A332bE9E0aA03e056c61f',
-  DelegationPolicy: '0xF7A24BFE63904DAa1d3Ea1020Bc356FDb1adb3DE',
-  AyinSmartAccount: '0xeFdfaA65c2dB1099D9fE168FBc7B4f90266f076E',
-  PredictionMarket: '0x6056a0bAA7d6BD6c0aA27feee847C11fb5eb5BD9',
+  AgentRegistry: '0xF2Cc613924e7f3e3Ee453f417F5eA63Aa78cC1D4',
+  DelegationPolicy: '0x71d50d575A86E6F34BE05abC223ac704da0d7a1d',
+  AyinSmartAccount: '0x25269aB39a7dF7303fb35cfA947a12E5244e23fC',
+  PredictionMarket: '0x89ecC0E5345D409930426cF1b352E30930da563E',
 } as const;
 
 // Base Mainnet (for production)
@@ -63,8 +63,8 @@ export function getContractAddress(
 }
 
 export const CONTRACTS = {
-  DELEGATION_POLICY: '0xF7A24BFE63904DAa1d3Ea1020Bc356FDb1adb3DE', // Base Sepolia DelegationPolicy
-  PREDICTION_MARKET: '0x6056a0bAA7d6BD6c0aA27feee847C11fb5eb5BD9', // Base Sepolia PredictionMarket
+  DELEGATION_POLICY: '0x71d50d575A86E6F34BE05abC223ac704da0d7a1d', // Base Sepolia DelegationPolicy
+  PREDICTION_MARKET: '0x89ecC0E5345D409930426cF1b352E30930da563E', // Base Sepolia PredictionMarket
 } as const;
 
 export const ABIS = {

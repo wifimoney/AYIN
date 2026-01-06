@@ -1,0 +1,225 @@
+// AYIN Platform Database Schema
+// Phase 1: Persistence Implementation
+// Replaces in-memory mocks with PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTH MODELS
+// ============================================
+
+model User {
+  id            String   @id @default(cuid())
+  walletAddress String   @unique
+  fid           Int?     @unique  // Farcaster ID
+  username      String?
+  displayName   String?
+  pfpUrl        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  sessions    Session[]
+  delegations Delegation[]
+
+  @@index([walletAddress])
+  @@index([fid])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ============================================
+// AGENT MODELS
+// ============================================
+
+enum AgentStatus {
+  ACTIVE
+  PAUSED
+  RISK
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AgentType {
+  MOMENTUM
+  MARKET_MAKER
+  MEAN_REVERSION
+  STAT_ARB
+  CONSENSUS_SWARM
+  LIQUIDITY
+  DIRECTIONAL
+  ARB
+}
+
+model Agent {
+  id              String      @id @default(cuid())
+  name            String
+  type            AgentType
+  status          AgentStatus @default(ACTIVE)
+  reputation      Int         @default(0)
+  winRate         String      @default("0%")
+  drawdown        String      @default("0%")
+  aum             String      @default("$0")
+  risk            RiskLevel   @default(MEDIUM)
+  strategy        String?
+  signalStrength  Int         @default(0)
+  image           String?
+
+  // ERC-8004 Onchain Data
+  onchainId       Int?        @unique
+  onchainType     Int?        // 0=DIRECTIONAL, 1=LIQUIDITY, 2=ARB
+  strategyHash    String?
+  operator        String?     // Wallet address
+  registeredAt    DateTime?
+  verifiedOnchain Boolean     @default(false)
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  delegations Delegation[]
+  actions     AgentAction[]
+
+  @@index([status])
+  @@index([verifiedOnchain])
+  @@index([operator])
+}
+
+// ============================================
+// DELEGATION MODELS
+// ============================================
+
+enum DelegationStatus {
+  PENDING
+  ACTIVE
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+model Delegation {
+  id        String           @id @default(cuid())
+  userId    String
+  agentId   String
+  status    DelegationStatus @default(PENDING)
+
+  // Constraints (stored as JSON for flexibility)
+  allocation    Int              // Amount in smallest unit
+  duration      Int              // Duration in days
+  maxDrawdown   Int              // Percentage
+  maxPosition   Int              // Percentage
+  deltaNeutral  Boolean          @default(false)
+  stopLoss      Boolean          @default(true)
+  approvedMarkets String[]       // Array of market IDs
+
+  // Onchain data
+  txHash        String?          // Transaction hash for creation
+  onchainId     String?          // Onchain delegation ID
+
+  createdAt     DateTime         @default(now())
+  expiresAt     DateTime
+  updatedAt     DateTime         @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agent  Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([agentId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+// ============================================
+// AGENT ACTION TRACKING
+// ============================================
+
+enum ActionType {
+  BUY
+  SELL
+  ADJUST
+  STOP
+}
+
+model AgentAction {
+  id        String     @id @default(cuid())
+  agentId   String
+  type      ActionType
+  action    String     // Description of the action
+  market    String     // Market identifier
+  txHash    String?
+  amount    String?
+  price     String?
+  timestamp DateTime   @default(now())
+
+  // Relations
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([timestamp])
+  @@index([type])
+}
+
+// ============================================
+// x402 PAYMENT CHALLENGES (Phase 1.3 - Redis backup)
+// ============================================
+
+model PaymentChallenge {
+  id             String   @id @default(cuid())
+  nonce          String   @unique
+  paymentAddress String
+  amount         BigInt
+  token          String
+  endpoint       String
+  minimumChainId Int
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  used           Boolean  @default(false)
+
+  @@index([nonce])
+  @@index([expiresAt])
+}
+
+// ============================================
+// PAYMENT VERIFICATION LOGS
+// ============================================
+
+model PaymentLog {
+  id          String   @id @default(cuid())
+  agentId     String
+  endpoint    String
+  amountPaid  BigInt
+  signature   String?
+  verified    Boolean
+  errorMsg    String?
+  timestamp   DateTime @default(now())
+
+  @@index([agentId])
+  @@index([timestamp])
+}

@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Agent, ApiResponse } from '@/lib/types';
+import type { Agent, AgentStatus, ApiResponse } from '@/lib/types';
 import { x402Service } from '@/lib/x402';
 import { getAgents } from '@/lib/data';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') || undefined;
+    const statusParam = searchParams.get('status') || undefined;
     const search = searchParams.get('search') || undefined;
+
+    // Cast status parameter to AgentStatus type
+    const status: AgentStatus | undefined = statusParam as AgentStatus | undefined;
 
     // 1. Fetch live activity logs
     let logs: any[] = [];
@@ -17,11 +20,11 @@ export async function GET(request: NextRequest) {
       console.warn('Failed to fetch x402 logs', e);
     }
 
-    // 2. Get agents from centralized data store
-    let agents = getAgents({ status, search });
+    // 2. Get agents from database (now async)
+    let agents = await getAgents({ status, search });
 
     // 3. Enrich with activity data
-    agents = agents.map(agent => {
+    const enrichedAgents = agents.map(agent => {
       // Calculate recent activity
       const agentLogs = logs.filter(l => l.agentId.toString() === agent.id);
       const successfulOps = agentLogs.filter((l: any) => l.success).length;
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     const response: ApiResponse<Agent[]> = {
       success: true,
-      data: agents,
+      data: enrichedAgents,
     };
 
     return NextResponse.json(response);
